@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מלכודת פרדיגמטית — כלי מחקר</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface2: #f0ede6;
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.2);
+    --text: #1a1a18;
+    --text-muted: #6b6b65;
+    --text-hint: #9e9e96;
+    --accent: #1a3a5c;
+    --accent-light: #e8f0f8;
+    --green: #1a6b3c;
+    --green-bg: #edf7f2;
+    --orange: #b55a00;
+    --orange-bg: #fdf0e0;
+    --red: #a32d2d;
+    --red-bg: #fcebeb;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Heebo', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Layout ── */
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--accent);
+    color: #fff;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-logo {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .sidebar-logo h1 { font-size: 13px; font-weight: 600; letter-spacing: 0.05em; color: #fff; }
+  .sidebar-logo p { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; font-family: var(--mono); }
+
+  .nav-section { padding: 12px 0 4px; }
+  .nav-label { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4); padding: 0 14px 6px; font-weight: 500; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    border-right: 2px solid transparent;
+    transition: all 0.15s;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .nav-item.active { background: rgba(255,255,255,0.12); color: #fff; border-right-color: #fff; }
+  .nav-item .num { font-family: var(--mono); font-size: 10px; color: rgba(255,255,255,0.4); min-width: 18px; }
+  .nav-item .has-data { color: #4ade80; font-size: 8px; margin-right: auto; }
+
+  .sidebar-footer { margin-top: auto; padding: 12px 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-footer button { width: 100%; font-size: 11px; padding: 7px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; font-family: var(--sans); }
+  .sidebar-footer button:hover { background: rgba(255,255,255,0.2); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 24px; }
+  .tab { padding: 12px 18px; font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Main ── */
+  .main { background: var(--bg); overflow-y: auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Event header ── */
+  .ev-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px 16px;
+    display: flex; align-items: flex-start; gap: 16px;
+  }
+  .ev-num-badge {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--accent-light); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600; font-family: var(--mono);
+    flex-shrink: 0;
+  }
+  .ev-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .ev-year { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-top: 2px; }
+  .save-badge { margin-right: auto; font-size: 11px; color: var(--text-hint); display: flex; align-items: center; gap: 4px; }
+  .save-badge.saving { color: var(--orange); }
+  .save-badge.saved { color: var(--green); }
+
+  /* ── Content areas ── */
+  .content { padding: 20px 24px; }
+  .section { margin-bottom: 18px; }
+  .section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+  }
+  .hbadge {
+    font-size: 9px; padding: 2px 7px; border-radius: 3px; font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .bh1 { background: #fdf6e3; color: #7a4f00; }
+  .bh2 { background: #fdf0ee; color: #a32d2d; }
+  .bh3 { background: #e8f0f8; color: #1a3a5c; }
+
+  textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: var(--sans);
+    color: var(--text);
+    background: var(--surface);
+    resize: vertical;
+    line-height: 1.6;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .learn-card { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; background: var(--surface); }
+  .learn-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 3px; display: inline-block; margin-bottom: 6px; letter-spacing: 0.04em; }
+  .lt-tac { background: #fdf6e3; color: #7a4f00; }
+  .lt-str { background: #edf7f2; color: #1a6b3c; }
+
+  /* ── Sources ── */
+  .src-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .src-toolbar select, .src-toolbar input { font-size: 12px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); font-family: var(--sans); }
+  .src-toolbar input { flex: 1; min-width: 140px; }
+  .src-toolbar button { font-size: 12px; padding: 6px 14px; border: 1px solid var(--accent); border-radius: 5px; background: var(--accent); color: #fff; cursor: pointer; font-family: var(--sans); white-space: nowrap; }
+  .src-toolbar button:hover { background: #0f2640; }
+
+  .src-list { display: flex; flex-direction: column; gap: 6px; }
+  .src-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .src-badges { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .type-badge { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; text-align: center; }
+  .td { background: #e8f0f8; color: #1a3a5c; }
+  .tr { background: #edf7f2; color: #1a6b3c; }
+  .ta { background: #fdf6e3; color: #7a4f00; }
+  .ti { background: #f5eef8; color: #5b2c6f; }
+  .tn { background: #f0ede6; color: #4a4a42; }
+
+  .proof-badge { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; text-align: center; }
+  .pb-hoop { background: #e8f0f8; color: #1a3a5c; }
+  .pb-gun { background: #fcebeb; color: #a32d2d; }
+  .pb-none { background: #f0ede6; color: #6b6b65; }
+
+  .phase-badge { font-size: 9px; padding: 2px 6px; border-radius: 3px; background: var(--surface2); color: var(--text-muted); font-weight: 500; text-align: center; }
+
+  .src-body { flex: 1; min-width: 0; }
+  .src-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+  .src-url { font-size: 11px; color: var(--accent); margin-top: 3px; word-break: break-all; display: block; }
+  .src-meta { font-size: 10px; color: var(--text-hint); margin-top: 4px; font-family: var(--mono); }
+
+  .src-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .src-del { font-size: 16px; color: var(--text-hint); cursor: pointer; line-height: 1; padding: 2px; }
+  .src-del:hover { color: var(--red); }
+
+  .konzept-checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .kcheck { font-size: 10px; padding: 2px 8px; border-radius: 3px; background: var(--surface2); color: var(--text-muted); cursor: pointer; border: 1px solid var(--border); transition: all 0.1s; }
+  .kcheck.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .empty-src { padding: 20px; text-align: center; font-size: 12px; color: var(--text-hint); background: var(--surface); border: 1px dashed var(--border); border-radius: 6px; }
+
+  /* ── Erosion table ── */
+  .erosion-wrap { padding: 20px 24px; }
+  .erosion-legend { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; font-size: 11px; align-items: center; }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .ld-a { background: #1a6b3c; }
+  .ld-p { background: #e67e22; }
+  .ld-e { background: #a32d2d; }
+  .ld-n { background: #d0cfc7; }
+  .etbl-wrap { overflow-x: auto; }
+  .etbl { border-collapse: collapse; font-size: 12px; width: 100%; }
+  .etbl th, .etbl td { border: 1px solid var(--border); padding: 7px 10px; text-align: center; vertical-align: middle; background: var(--surface); }
+  .etbl th { background: var(--surface2); font-weight: 500; font-size: 10px; color: var(--text-muted); letter-spacing: 0.04em; }
+  .etbl td.row-lbl { text-align: right; font-size: 11px; font-weight: 500; min-width: 140px; line-height: 1.4; }
+  .ecell { width: 22px; height: 22px; border-radius: 50%; margin: auto; cursor: pointer; transition: transform 0.1s; }
+  .ecell:hover { transform: scale(1.25); }
+  .ecell.active { background: #1a6b3c; }
+  .ecell.partial { background: #e67e22; }
+  .ecell.eroded { background: #a32d2d; }
+  .ecell.na { background: #d0cfc7; }
+
+  /* ── Export page ── */
+  .export-wrap { padding: 24px; }
+  .export-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .export-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .export-card p { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.6; }
+  .export-btn { font-size: 12px; padding: 8px 18px; border-radius: 5px; cursor: pointer; font-family: var(--sans); font-weight: 500; }
+  .btn-primary { background: var(--accent); color: #fff; border: none; }
+  .btn-primary:hover { background: #0f2640; }
+  .btn-secondary { background: var(--surface); color: var(--accent); border: 1px solid var(--accent); margin-right: 8px; }
+  .btn-secondary:hover { background: var(--accent-light); }
+
+  /* ── View toggle ── */
+  .view-toggle { display: flex; gap: 0; background: var(--surface2); border-radius: 6px; padding: 3px; width: fit-content; margin-bottom: 16px; }
+  .vtbtn { font-size: 11px; padding: 4px 12px; border-radius: 4px; cursor: pointer; border: none; background: transparent; color: var(--text-muted); font-family: var(--sans); font-weight: 500; }
+  .vtbtn.active { background: var(--surface); color: var(--text); }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h1>מלכודת פרדיגמטית</h1>
+    <p>כלי מחקר · יובל בלומברג</p>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">ניתוח</div>
+    <div class="nav-item active" onclick="showTab('events')" id="nav-events">
+      <span class="num">—</span> נקודות שבר
+    </div>
+    <div class="nav-item" onclick="showTab('erosion')" id="nav-erosion">
+      <span class="num">—</span> מפת Erosion
+    </div>
+    <div class="nav-item" onclick="showTab('export')" id="nav-export">
+      <span class="num">—</span> ייצוא
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">12 נקודות שבר</div>
+    <div id="evNav"></div>
+  </div>
+
+  <div class="sidebar-footer">
+    <button onclick="exportJSON()">גיבוי נתונים (JSON)</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- EVENTS PAGE -->
+  <div class="page active" id="page-events">
+    <div class="tabs">
+      <div class="tab active" onclick="switchInnerTab('analysis')" id="itab-analysis">ניתוח</div>
+      <div class="tab" onclick="switchInnerTab('sources')" id="itab-sources">מקורות</div>
+    </div>
+
+    <!-- ANALYSIS TAB -->
+    <div id="inner-analysis">
+      <div class="ev-header">
+        <div class="ev-num-badge" id="hNum">1</div>
+        <div>
+          <div class="ev-title" id="hName">—</div>
+          <div class="ev-year" id="hYear">—</div>
+        </div>
+        <div class="save-badge saved" id="saveBadge">✓ נשמר</div>
+      </div>
+      <div class="content">
+        <div class="two-col" style="margin-bottom:18px">
+          <div class="section">
+            <div class="section-label">מה ידעה המערכת? (לפני האירוע)</div>
+            <textarea id="f_before" rows="4" placeholder="אותות אזהרה, מידע מודיעיני שהיה קיים..."></textarea>
+          </div>
+          <div class="section">
+            <div class="section-label">תיאור האירוע עצמו</div>
+            <textarea id="f_event" rows="4" placeholder="מה קרה בפועל? מה הייתה האנומליה?"></textarea>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-label">תגובת המערכת (תוך כדי ואחרי)</div>
+          <textarea id="f_response" rows="3" placeholder="מה הוחלט? אילו צעדים ננקטו? מה השתנה, מה לא?"></textarea>
+        </div>
+        <div class="section">
+          <div class="section-label"><span class="hbadge bh1">H1 · מיקרו</span> Confirmation Bias — הטיית אישוש</div>
+          <textarea id="f_h1" rows="3" placeholder="האם שחקנים בכירים סיננו מידע סותר? מי מהאדריכלים הוותיקים מול חדשים?..."></textarea>
+        </div>
+        <div class="section">
+          <div class="section-label"><span class="hbadge bh2">H2 · מזו</span> Groupthink — הומוגניות קבוצתית</div>
+          <textarea id="f_h2" rows="3" placeholder="האם הושתקו קולות ביקורתיים? תיוג מבקרים? פרוטוקולי ועדות?..."></textarea>
+        </div>
+        <div class="section">
+          <div class="section-label"><span class="hbadge bh3">H3 · מאקרו</span> אינטרס ארגוני — פתרון טכנולוגי</div>
+          <textarea id="f_h3" rows="3" placeholder="אילו פתרונות טכנולוגיים אומצו? מה נמנע מלאתגר הפרדיגמה?..."></textarea>
+        </div>
+        <div class="section">
+          <div class="section-label">סוג הלמידה שהתרחשה</div>
+          <div class="two-col">
+            <div class="learn-card">
+              <span class="learn-tag lt-tac">Single-loop (טקטית)</span>
+              <textarea id="f_tac" rows="2" placeholder="התאמות ללא ערעור הנחות יסוד..."></textarea>
+            </div>
+            <div class="learn-card">
+              <span class="learn-tag lt-str">Double-loop (אסטרטגית)</span>
+              <textarea id="f_str" rows="2" placeholder="האם שונה תפיסת היריב?..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-label">הסברים חלופיים</div>
+          <div class="two-col">
+            <textarea id="f_alt1" rows="2" placeholder="רציונליות אסטרטגית מודעת..."></textarea>
+            <textarea id="f_alt2" rows="2" placeholder="חסר מודיעיני אובייקטיבי..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOURCES TAB -->
+    <div id="inner-sources" style="display:none">
+      <div class="ev-header">
+        <div class="ev-num-badge" id="hNum2">1</div>
+        <div>
+          <div class="ev-title" id="hName2">—</div>
+          <div class="ev-year" id="hYear2">—</div>
+        </div>
+        <div class="save-badge saved" id="saveBadge2">✓ נשמר</div>
+      </div>
+      <div class="content">
+        <div class="src-toolbar">
+          <select id="sType">
+            <option value="d">פרוטוקול</option>
+            <option value="r">דו"ח רשמי</option>
+            <option value="a">מאמר אקדמי</option>
+            <option value="i">ראיון / עדות</option>
+            <option value="n">עיתונות</option>
+          </select>
+          <select id="sPhase">
+            <option value="before">לפני</option>
+            <option value="during">תוך כדי</option>
+            <option value="after">אחרי</option>
+          </select>
+          <select id="sProof">
+            <option value="none">ראיה רגילה</option>
+            <option value="hoop">Hoop Test</option>
+            <option value="gun">Smoking Gun</option>
+          </select>
+          <input id="sTxt" placeholder="שם המקור, מחברים, שנה..." />
+          <input id="sUrl" placeholder="קישור (אופציונלי)" style="max-width:180px" />
+          <button onclick="addSource()">+ הוסף מקור</button>
+        </div>
+        <div style="margin-bottom:10px">
+          <div class="section-label" style="margin-bottom:6px">מרכיב קונספציה מאותגר / מאושש:</div>
+          <div class="konzept-checks" id="konzeptChecks"></div>
+        </div>
+        <div class="src-list" id="srcList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EROSION PAGE -->
+  <div class="page" id="page-erosion">
+    <div class="erosion-wrap">
+      <div style="margin-bottom:16px">
+        <div style="font-size:15px;font-weight:600;margin-bottom:4px">מפת Erosion — שישה מרכיבי הקונספציה</div>
+        <div style="font-size:12px;color:var(--text-muted)">לחץ על כל תא כדי לשנות את מצב המרכיב באותה נקודת שבר</div>
+      </div>
+      <div class="erosion-legend">
+        <div class="leg"><div class="leg-dot ld-a"></div><span>פעיל</span></div>
+        <div class="leg"><div class="leg-dot ld-p"></div><span>חלקי / מתערער</span></div>
+        <div class="leg"><div class="leg-dot ld-e"></div><span>נשמט</span></div>
+        <div class="leg"><div class="leg-dot ld-n"></div><span>לא רלוונטי</span></div>
+      </div>
+      <div class="etbl-wrap">
+        <table class="etbl" id="erosionTable"></table>
+      </div>
+      <p style="font-size:11px;color:var(--text-hint);margin-top:10px">הנתונים נשמרים אוטומטית ב-localStorage</p>
+    </div>
+  </div>
+
+  <!-- EXPORT PAGE -->
+  <div class="page" id="page-export">
+    <div class="export-wrap">
+      <div style="font-size:15px;font-weight:600;margin-bottom:16px">ייצוא וגיבוי</div>
+      <div class="export-card">
+        <h3>ייצוא לניתוח (JSON)</h3>
+        <p>מייצא את כל נתוני הניתוח, המקורות ומפת ה-Erosion לקובץ JSON. שמור גיבויים תקופתיים.</p>
+        <button class="export-btn btn-primary" onclick="exportJSON()">הורד קובץ JSON</button>
+      </div>
+      <div class="export-card">
+        <h3>ייצוא מקורות (CSV)</h3>
+        <p>מייצא את כל המקורות מכל 12 הנקודות לקובץ CSV להמשך עבודה באקסל.</p>
+        <button class="export-btn btn-primary" onclick="exportCSV()">הורד קובץ CSV</button>
+      </div>
+      <div class="export-card">
+        <h3>ייבוא גיבוי</h3>
+        <p>טען קובץ JSON שמור כדי לשחזר נתונים.</p>
+        <input type="file" accept=".json" id="importFile" style="display:none" onchange="importJSON(event)">
+        <button class="export-btn btn-secondary" onclick="document.getElementById('importFile').click()">בחר קובץ JSON</button>
+      </div>
+      <div class="export-card">
+        <h3>סטטיסטיקה</h3>
+        <div id="statsDiv" style="font-size:12px;color:var(--text-muted);line-height:2"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+const EVENTS=[
+  {n:1,name:"כינון הפרדיגמה ופיגועי ההתאבדות",year:"1993–1996"},
+  {n:2,name:"קריסת קמפ-דיוויד והאינתיפאדה השנייה",year:"2000"},
+  {n:3,name:"מבצע חומת מגן",year:"2002"},
+  {n:4,name:"תוכנית ההתנתקות",year:"2005"},
+  {n:5,name:"השתלטות חמאס על הרצועה",year:"2007"},
+  {n:6,name:"כניסת ממשל אובאמה",year:"2009"},
+  {n:7,name:"עסקת שליט",year:"2011"},
+  {n:8,name:"מבצע עמוד ענן",year:"2012"},
+  {n:9,name:"מבצע צוק איתן וחשיפת המנהרות",year:"2014"},
+  {n:10,name:"אירועי הגדר",year:"2018"},
+  {n:11,name:"מבצע שומר החומות",year:"2021"},
+  {n:12,name:"מבצעי עלות השחר ומגן וחץ",year:"2023"},
+];
+
+const KONZEPT=[
+  {id:'M1',label:'M1 שינוי פלסטיני'},
+  {id:'M2',label:'M2 מיקור חוץ ביטחוני'},
+  {id:'M3',label:'M3 רציונליות כלכלית'},
+  {id:'M4',label:'M4 לאומיות מערבית'},
+  {id:'M5',label:'M5 עיוורון לאיסלאם'},
+  {id:'M6',label:'M6 ישות כנכס'},
+];
+
+const MCOLS=['M1','M2','M3','M4','M5','M6'];
+const MNAMES={M1:'שינוי פלסטיני',M2:'מיקור חוץ ביטחוני',M3:'רציונליות כלכלית',M4:'לאומיות מערבית',M5:'עיוורון לאיסלאם',M6:'ישות כנכס'};
+const ESTATES=['active','partial','eroded','na'];
+const FIELDS=['before','event','response','h1','h2','h3','tac','str','alt1','alt2'];
+const TLABEL={d:'פרוטוקול',r:'דו"ח',a:'מאמר',i:'ראיון',n:'עיתונות'};
+const TCLASS={d:'td',r:'tr',a:'ta',i:'ti',n:'tn'};
+const PLABEL={before:'לפני',during:'תוך כדי',after:'אחרי'};
+const PROLABEL={none:'',hoop:'Hoop',gun:'🔴 Smoking Gun'};
+const PROCLASS={none:'pb-none',hoop:'pb-hoop',gun:'pb-gun'};
+
+let cur=0;
+let innerTab='analysis';
+let pendingKonzept=[];
+let saveTimer=null;
+
+function sk(ev,f){return `pt3_e${ev}_${f}`;}
+function skSrc(ev){return `pt3_e${ev}_srcs`;}
+function skErosion(ev,m){return `pt3_er_e${ev}_${m}`;}
+
+const DEFAULT_EROSION={
+  1:['active','active','active','active','active','active'],
+  2:['partial','partial','eroded','active','active','active'],
+  3:['partial','partial','eroded','active','active','active'],
+  4:['partial','partial','partial','partial','partial','active'],
+  5:['eroded','eroded','partial','partial','active','partial'],
+  6:['eroded','eroded','partial','partial','active','partial'],
+  7:['eroded','eroded','partial','na','active','partial'],
+  8:['eroded','eroded','partial','na','active','partial'],
+  9:['eroded','eroded','active','na','eroded','partial'],
+  10:['eroded','eroded','partial','na','eroded','partial'],
+  11:['eroded','eroded','partial','na','eroded','partial'],
+  12:['eroded','eroded','eroded','na','eroded','eroded'],
+};
+
+function getErosionState(evn,mi){
+  const key=skErosion(evn,MCOLS[mi]);
+  const raw=localStorage.getItem(key);
+  return raw||DEFAULT_EROSION[evn][mi];
+}
+function setErosionState(evn,mi,val){
+  localStorage.setItem(skErosion(evn,MCOLS[mi]),val);
+}
+
+function getSources(evn){
+  try{const r=localStorage.getItem(skSrc(evn));return r?JSON.parse(r):[];}catch(e){return [];}
+}
+function setSources(evn,srcs){localStorage.setItem(skSrc(evn),JSON.stringify(srcs));}
+
+function getField(evn,f){return localStorage.getItem(sk(evn,f))||'';}
+function setField(evn,f,v){localStorage.setItem(sk(evn,f),v);}
+
+function hasData(evn){return !!(localStorage.getItem(sk(evn,'before'))||localStorage.getItem(sk(evn,'h1'))||getSources(evn).length);}
+
+// ── NAV ──
+function buildNav(){
+  const el=document.getElementById('evNav');
+  el.innerHTML=EVENTS.map((e,i)=>`
+    <div class="nav-item${i===cur?' active':''}" onclick="switchEvent(${i})" id="nav-ev-${i}">
+      <span class="num">${String(e.n).padStart(2,'0')}</span>
+      <span style="flex:1;line-height:1.3">${e.name}</span>
+      ${hasData(e.n)?'<span class="has-data">●</span>':''}
+    </div>`).join('');
+}
+
+// ── SWITCH EVENT ──
+function switchEvent(idx){
+  saveCurrentEvent();
+  cur=idx;
+  loadEvent(idx);
+  buildNav();
+  document.querySelectorAll('[id^=nav-ev-]').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`nav-ev-${idx}`)?.classList.add('active');
+}
+
+function loadEvent(idx){
+  const e=EVENTS[idx];
+  ['hNum','hNum2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=e.n;});
+  ['hName','hName2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=e.name;});
+  ['hYear','hYear2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=e.year;});
+  FIELDS.forEach(f=>{const el=document.getElementById('f_'+f);if(el)el.value=getField(e.n,f);});
+  renderSources(e.n);
+  buildKonzeptChecks();
+  setSaveStatus('saved');
+}
+
+function saveCurrentEvent(){
+  const e=EVENTS[cur];
+  FIELDS.forEach(f=>{const el=document.getElementById('f_'+f);if(el)setField(e.n,f,el.value);});
+}
+
+function triggerSave(){
+  setSaveStatus('saving');
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{saveCurrentEvent();setSaveStatus('saved');buildNav();},900);
+}
+
+function setSaveStatus(st){
+  ['saveBadge','saveBadge2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.className='save-badge '+st;
+    el.textContent=st==='saving'?'⋯ שומר':'✓ נשמר';
+  });
+}
+
+FIELDS.forEach(f=>{
+  const el=document.getElementById('f_'+f);
+  if(el)el.addEventListener('input',triggerSave);
+});
+
+// ── KONZEPT CHECKS ──
+function buildKonzeptChecks(){
+  pendingKonzept=[];
+  const el=document.getElementById('konzeptChecks');
+  if(!el)return;
+  el.innerHTML=KONZEPT.map(k=>`
+    <span class="kcheck" id="kc-${k.id}" onclick="toggleKonzept('${k.id}')">${k.label}</span>`).join('');
+}
+function toggleKonzept(id){
+  const el=document.getElementById('kc-'+id);
+  if(!el)return;
+  if(pendingKonzept.includes(id)){
+    pendingKonzept=pendingKonzept.filter(x=>x!==id);
+    el.classList.remove('on');
+  }else{
+    pendingKonzept.push(id);
+    el.classList.add('on');
+  }
+}
+
+// ── SOURCES ──
+function addSource(){
+  const t=document.getElementById('sType').value;
+  const phase=document.getElementById('sPhase').value;
+  const proof=document.getElementById('sProof').value;
+  const txt=document.getElementById('sTxt').value.trim();
+  const url=document.getElementById('sUrl').value.trim();
+  if(!txt)return;
+  const evn=EVENTS[cur].n;
+  const srcs=getSources(evn);
+  srcs.push({t,phase,proof,txt,url,konzept:[...pendingKonzept],ts:Date.now()});
+  setSources(evn,srcs);
+  renderSources(evn);
+  document.getElementById('sTxt').value='';
+  document.getElementById('sUrl').value='';
+  pendingKonzept=[];
+  buildKonzeptChecks();
+  buildNav();
+}
+
+function deleteSource(evn,idx){
+  const srcs=getSources(evn);
+  srcs.splice(idx,1);
+  setSources(evn,srcs);
+  renderSources(evn);
+  buildNav();
+}
+
+function renderSources(evn){
+  const srcs=getSources(evn);
+  const el=document.getElementById('srcList');
+  if(!el)return;
+  if(!srcs.length){
+    el.innerHTML='<div class="empty-src">אין מקורות עדיין לנקודה זו</div>';
+    return;
+  }
+  el.innerHTML=srcs.map((s,i)=>`
+    <div class="src-card">
+      <div class="src-badges">
+        <span class="type-badge ${TCLASS[s.t]||'tn'}">${TLABEL[s.t]||s.t}</span>
+        <span class="phase-badge">${PLABEL[s.phase]||s.phase}</span>
+        ${s.proof&&s.proof!=='none'?`<span class="proof-badge ${PROCLASS[s.proof]}">${PROLABEL[s.proof]}</span>`:''}
+      </div>
+      <div class="src-body">
+        <div class="src-text">${s.txt}</div>
+        ${s.url?`<a class="src-url" href="${s.url}" target="_blank">${s.url}</a>`:''}
+        ${s.konzept&&s.konzept.length?`<div class="src-meta">מרכיבים: ${s.konzept.join(', ')}</div>`:''}
+      </div>
+      <div class="src-actions">
+        <span class="src-del" onclick="deleteSource(${evn},${i})" title="מחק">×</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── INNER TABS ──
+function switchInnerTab(tab){
+  innerTab=tab;
+  document.getElementById('inner-analysis').style.display=tab==='analysis'?'block':'none';
+  document.getElementById('inner-sources').style.display=tab==='sources'?'block':'none';
+  document.getElementById('itab-analysis').className='tab'+(tab==='analysis'?' active':'');
+  document.getElementById('itab-sources').className='tab'+(tab==='sources'?' active':'');
+  if(tab==='sources')renderSources(EVENTS[cur].n);
+}
+
+// ── TOP TABS ──
+function showTab(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  ['events','erosion','export'].forEach(t=>{
+    document.getElementById('nav-'+t).classList.toggle('active',t===name);
+  });
+  if(name==='export')buildStats();
+  if(name==='erosion')buildErosionTable();
+  if(name==='events')loadEvent(cur);
+}
+
+// ── EROSION TABLE ──
+function buildErosionTable(){
+  const tbl=document.getElementById('erosionTable');
+  const mLabels={M1:'M1<br>שינוי פלסטיני',M2:'M2<br>מיקור חוץ',M3:'M3<br>רציונליות כלכלית',M4:'M4<br>לאומיות מערבית',M5:'M5<br>עיוורון לאיסלאם',M6:'M6<br>ישות כנכס'};
+  let html=`<thead><tr><th>נקודת שבר</th>${MCOLS.map(m=>`<th style="font-size:10px;max-width:80px;line-height:1.4">${mLabels[m]}</th>`).join('')}</tr></thead><tbody>`;
+  EVENTS.forEach(e=>{
+    html+=`<tr><td class="row-lbl">${e.name}<br><span style="font-size:10px;color:var(--text-hint);font-family:var(--mono)">${e.year}</span></td>`;
+    MCOLS.forEach((m,mi)=>{
+      const st=getErosionState(e.n,mi);
+      html+=`<td><div class="ecell ${st}" onclick="cycleErosion(${e.n},${mi},this)"></div></td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody>`;
+  tbl.innerHTML=html;
+}
+
+function cycleErosion(evn,mi,el){
+  const cur=el.className.replace('ecell ','').trim();
+  const idx=ESTATES.indexOf(cur);
+  const next=ESTATES[(idx+1)%ESTATES.length];
+  el.className=`ecell ${next}`;
+  setErosionState(evn,mi,next);
+}
+
+// ── EXPORT ──
+function buildStats(){
+  let totalSrc=0,totalAnalyzed=0;
+  EVENTS.forEach(e=>{
+    totalSrc+=getSources(e.n).length;
+    if(hasData(e.n))totalAnalyzed++;
+  });
+  document.getElementById('statsDiv').innerHTML=`
+    נקודות שבר עם נתונים: <strong>${totalAnalyzed} / 12</strong><br>
+    סך מקורות שנאספו: <strong>${totalSrc}</strong><br>
+    נקודות שבר ללא מקורות: <strong>${EVENTS.filter(e=>!getSources(e.n).length).length}</strong>
+  `;
+}
+
+function exportJSON(){
+  const out={meta:{version:3,exported:new Date().toISOString(),author:'יובל בלומברג'},events:{}};
+  EVENTS.forEach(e=>{
+    const analysis={};
+    FIELDS.forEach(f=>analysis[f]=getField(e.n,f));
+    out.events[e.n]={name:e.name,year:e.year,analysis,sources:getSources(e.n)};
+    out.events[e.n].erosion={};
+    MCOLS.forEach((m,mi)=>out.events[e.n].erosion[m]=getErosionState(e.n,mi));
+  });
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`thesis-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function exportCSV(){
+  let csv='נקודת שבר,שנה,סוג,שלב,ראיה,מרכיבים,טקסט,קישור\n';
+  EVENTS.forEach(e=>{
+    getSources(e.n).forEach(s=>{
+      csv+=`"${e.name}","${e.year}","${TLABEL[s.t]||s.t}","${PLABEL[s.phase]||s.phase}","${PROLABEL[s.proof]||''}","${(s.konzept||[]).join(';')}","${s.txt.replace(/"/g,'""')}","${s.url||''}"\n`;
+    });
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`thesis-sources-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function importJSON(evt){
+  const file=evt.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.events){
+        Object.keys(data.events).forEach(evn=>{
+          const ev=data.events[evn];
+          if(ev.analysis)FIELDS.forEach(f=>{if(ev.analysis[f]!==undefined)setField(evn,f,ev.analysis[f]);});
+          if(ev.sources)setSources(evn,ev.sources);
+          if(ev.erosion)MCOLS.forEach((m,mi)=>{if(ev.erosion[m])setErosionState(evn,mi,ev.erosion[m]);});
+        });
+        loadEvent(cur);
+        buildNav();
+        alert('הנתונים יובאו בהצלחה');
+      }
+    }catch(ex){alert('שגיאה בייבוא הקובץ');}
+  };
+  reader.readAsText(file);
+}
+
+// ── INIT ──
+buildNav();
+loadEvent(0);
+</script>
+</body>
+</html>
