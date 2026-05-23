@@ -629,6 +629,25 @@ function addSource(){
   const txt=document.getElementById('sTxt').value.trim();
   const url=document.getElementById('sUrl').value.trim();
   if(!txt)return;
+
+  if(url){
+    const normalizeUrl=u=>u.replace(/\/+$/,'').replace(/^https?:\/\//,'').toLowerCase();
+    const norm=normalizeUrl(url);
+    let duplicates=[];
+    EVENTS.forEach(ev=>{
+      getSources(ev.n).forEach(s=>{
+        if(s.url&&normalizeUrl(s.url)===norm){
+          duplicates.push({id:s.id,evName:ev.name,txt:s.txt});
+        }
+      });
+    });
+    if(duplicates.length){
+      const list=duplicates.map(d=>`• ${d.id} (${d.evName}): ${d.txt.slice(0,60)}...`).join('\n');
+      const proceed=confirm(`⚠️ כפילות URL\n\nהקישור הזה כבר קיים במערכת:\n${list}\n\nלהוסיף בכל זאת?`);
+      if(!proceed)return;
+    }
+  }
+
   const id=genId(e.code,t,e.n);
   const srcs=getSources(e.n);
   srcs.push({id,t,phase,proof,analysisField,txt,url,konzept:[...pendingKonzept],ts:Date.now()});
