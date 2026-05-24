@@ -92,6 +92,20 @@ textarea:focus{border-color:var(--accent)}
 .src-card.open .src-card-chevron{transform:rotate(180deg)}
 
 /* SOURCE ANALYSIS PANEL */
+
+/* QUOTE CARDS */
+.quote-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 12px}
+.quote-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.quote-num{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 7px;border-radius:3px;flex-shrink:0}
+.quote-title-input{flex:1;font-size:11px;padding:3px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);font-family:var(--sans);outline:none}
+.quote-title-input:focus{border-color:var(--accent);background:var(--surface)}
+.quote-page{width:70px;font-size:11px;padding:3px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--mono);outline:none;text-align:center}
+.quote-page:focus{border-color:var(--accent)}
+.quote-del{font-size:14px;color:var(--hint);cursor:pointer;padding:2px 4px;border:none;background:transparent;flex-shrink:0;font-family:var(--sans)}
+.quote-del:hover{color:var(--red)}
+.quote-text{width:100%;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);font-family:var(--sans);resize:vertical;outline:none;line-height:1.6;margin-top:2px}
+.quote-text:focus{border-color:var(--accent)}
+
 .src-analysis{display:none;padding:14px 16px;background:var(--bg)}
 .src-card.open .src-analysis{display:block}
 .ana-section{margin-bottom:14px}
@@ -602,7 +616,7 @@ function addSource(){
   const id=genId(e.code,t,e.n);
   const srcs=getSources(e.n);
   srcs.push({id,t,phase,proof,analysisField,txt,url,konzept:[...pendingKonzept],
-    ana:{quote:'',summary:'',hExplain:'',proofExplain:'',limitations:'',support:'',credibility:[]},
+    ana:{summary:'',hExplain:'',proofExplain:'',limitations:'',support:'',credibility:[]},quotes:[],
     ts:Date.now()});
   setSources(e.n,srcs);
   renderSources(e.n);renderLinkedSources(e.n);
@@ -716,6 +730,64 @@ function saveEdit(){
   closeEditModal();
 }
 
+
+// QUOTES
+function renderQuotesHTML(s,evn){
+  const quotes=s.quotes||[];
+  if(!quotes.length) return '<div style="font-size:11px;color:var(--hint);padding:6px 0">לחץ "+ ציטוט חדש" להוספת ציטוט</div>';
+  return quotes.map(function(q,i){
+    return '<div class="quote-card" id="qcard-'+s.id+'-'+i+'">' +
+      '<div class="quote-header">' +
+        '<span class="quote-num">'+(i+1)+'</span>' +
+        '<input class="quote-title-input" value="'+(q.title||'').replace(/"/g,'&quot;')+'" placeholder="כותרת (ניתן לערוך)" onchange="saveQuoteField('+evn+',\''+s.id+'\','+i+',\'title\',this.value)"/>' +
+        '<input class="quote-page" value="'+(q.page||'')+'" placeholder="עמ׳" onchange="saveQuoteField('+evn+',\''+s.id+'\','+i+',\'page\',this.value)"/>' +
+        '<button class="quote-del" onclick="deleteQuote('+evn+',\''+s.id+'\','+i+')">×</button>' +
+      '</div>' +
+      '<textarea class="quote-text" rows="2" placeholder="הדבק ציטוט מדויק..." onchange="saveQuoteField('+evn+',\''+s.id+'\','+i+',\'text\',this.value)">'+(q.text||'')+'</textarea>' +
+    '</div>';
+  }).join('');
+}
+
+function addQuote(evn,srcId){
+  const srcs=getSources(evn);
+  const idx=srcs.findIndex(function(s){return s.id===srcId});
+  if(idx===-1)return;
+  if(!srcs[idx].quotes)srcs[idx].quotes=[];
+  const qNum=srcs[idx].quotes.length+1;
+  const words=srcs[idx].txt.split(' ').slice(0,4).join(' ');
+  srcs[idx].quotes.push({title:'ציטוט '+qNum+' — '+words,text:'',page:''});
+  setSources(evn,srcs);
+  const container=document.getElementById('quotes-'+srcId);
+  if(container){
+    container.innerHTML=renderQuotesHTML(srcs[idx],evn);
+    const cards=container.querySelectorAll('.quote-card');
+    if(cards.length)cards[cards.length-1].scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  const lbl=document.getElementById('qlbl-'+srcId);
+  if(lbl)lbl.textContent='ציטוטים ('+srcs[idx].quotes.length+')';
+}
+
+function saveQuoteField(evn,srcId,qi,field,value){
+  const srcs=getSources(evn);
+  const idx=srcs.findIndex(function(s){return s.id===srcId});
+  if(idx===-1||!srcs[idx].quotes||!srcs[idx].quotes[qi])return;
+  srcs[idx].quotes[qi][field]=value;
+  setSources(evn,srcs);
+}
+
+function deleteQuote(evn,srcId,qi){
+  if(!confirm('למחוק ציטוט זה?'))return;
+  const srcs=getSources(evn);
+  const idx=srcs.findIndex(function(s){return s.id===srcId});
+  if(idx===-1)return;
+  srcs[idx].quotes.splice(qi,1);
+  setSources(evn,srcs);
+  const container=document.getElementById('quotes-'+srcId);
+  if(container)container.innerHTML=renderQuotesHTML(srcs[idx],evn);
+  const lbl=document.getElementById('qlbl-'+srcId);
+  if(lbl)lbl.textContent='ציטוטים ('+(srcs[idx].quotes||[]).length+')';
+}
+
 // RENDER SOURCES
 function renderSources(evn){
   const srcs=getSources(evn);
@@ -724,7 +796,7 @@ function renderSources(evn){
   el.innerHTML=srcs.map(s=>srcCardHTML(s,evn)).join('');
   // attach analysis field listeners
   srcs.forEach(s=>{
-    ['quote','summary','hExplain','proofExplain','limitations'].forEach(f=>{
+    ['summary','hExplain','proofExplain','limitations'].forEach(f=>{
       const el=document.getElementById(`ana-${s.id}-${f}`);
       if(el){
         el.addEventListener('input',()=>{
