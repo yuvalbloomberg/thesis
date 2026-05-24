@@ -840,8 +840,11 @@ function srcCardHTML(s,evn){
     </div>
     <div class="src-analysis">
       <div class="ana-section">
-        <div class="ana-label">ציטוט ספציפי מהמקור</div>
-        <textarea id="ana-${s.id}-quote" rows="2" placeholder='העתק ציטוט מדויק מהמקור...'>${ana.quote||''}</textarea>
+        <div class="ana-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span id="qlbl-${s.id}">ציטוטים (${(s.quotes||[]).length})</span>
+          <button onclick="addQuote(${evn},'${s.id}')" style="font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--sans)">+ ציטוט חדש</button>
+        </div>
+        <div id="quotes-${s.id}" style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${renderQuotesHTML(s,evn)}</div>
       </div>
       <div class="ana-section">
         <div class="ana-label">סיכום הנקודה הרלוונטית למחקר</div>
