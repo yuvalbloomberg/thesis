@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v6 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -192,7 +192,7 @@ textarea:focus{border-color:var(--accent)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג</p>
+    <p>כלי מחקר · יובל בלומברג · v6</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -1022,6 +1022,96 @@ function importJSON(evt){
 
 document.getElementById('moveModalBg').addEventListener('click',function(e){if(e.target===this)closeMoveModal()});
 document.getElementById('editModalBg').addEventListener('click',function(e){if(e.target===this)closeEditModal()});
+
+
+// ── GOOGLE DRIVE SYNC v6 ──
+const GDRIVE_CLIENT_ID = '614697446961-d53rpqb17j4impl17klj5upnpda13aj3.apps.googleusercontent.com';
+const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE_NAME = 'thesis-paradigm-trap-backup.json';
+let driveAccessToken = null;
+let driveFileId = localStorage.getItem('thesis_drive_file_id') || null;
+
+function initDriveAuth(){
+  if(typeof google === 'undefined' || !google.accounts){
+    alert('Google API טוען, המתן שנייה ונסה שוב');
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPES,
+    callback: (response) => {
+      if(response.error){ setDriveStatus('שגיאה בחיבור', false); return; }
+      driveAccessToken = response.access_token;
+      setDriveStatus('מחובר ✓', true);
+      document.getElementById('driveConnectBtn').style.display='none';
+      document.getElementById('driveSaveBtn').style.display='block';
+      document.getElementById('driveLoadBtn').style.display='block';
+    },
+  });
+  client.requestAccessToken();
+}
+
+function setDriveStatus(msg, connected){
+  const el=document.getElementById('driveStatus');
+  if(el){ el.textContent='Drive: '+msg; el.style.color=connected?'#4ade80':'rgba(255,255,255,0.5)'; }
+}
+
+async function saveToDrive(){
+  if(!driveAccessToken){ alert('יש לחבר Google Drive קודם'); return; }
+  setDriveStatus('שומר...', true);
+  const out={meta:{version:6,exported:new Date().toISOString()},events:{}};
+  EVENTS.forEach(e=>{
+    const analysis={};FIELDS.forEach(f=>analysis[f]=getField(e.n,f));
+    const erosion={};MCOLS.forEach((m,mi)=>erosion[m]=getEr(e.n,mi));
+    out.events[e.n]={name:e.name,code:e.code,year:e.year,analysis,sources:getSources(e.n),erosion};
+  });
+  const body=JSON.stringify(out,null,2);
+  try{
+    if(driveFileId){
+      await fetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',{
+        method:'PATCH',
+        headers:{'Authorization':'Bearer '+driveAccessToken,'Content-Type':'application/json'},
+        body
+      });
+    }else{
+      const form=new FormData();
+      form.append('metadata',new Blob([JSON.stringify({name:DRIVE_FILE_NAME,mimeType:'application/json'})],{type:'application/json'}));
+      form.append('file',new Blob([body],{type:'application/json'}));
+      const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST',headers:{'Authorization':'Bearer '+driveAccessToken},body:form
+      });
+      const data=await res.json();
+      driveFileId=data.id;
+      localStorage.setItem('thesis_drive_file_id',driveFileId);
+    }
+    setDriveStatus('נשמר ✓ '+new Date().toLocaleTimeString('he-IL'),true);
+  }catch(e){setDriveStatus('שגיאה בשמירה',false);console.error(e);}
+}
+
+async function loadFromDrive(){
+  if(!driveAccessToken){ alert('יש לחבר Google Drive קודם'); return; }
+  if(!driveFileId){ alert('לא נמצא קובץ שמור'); return; }
+  setDriveStatus('טוען...', true);
+  try{
+    const res=await fetch('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media',{
+      headers:{'Authorization':'Bearer '+driveAccessToken}
+    });
+    const data=await res.json();
+    if(data.events){
+      Object.keys(data.events).forEach(evn=>{
+        const ev=data.events[evn];
+        if(ev.analysis)FIELDS.forEach(f=>{if(ev.analysis[f]!==undefined)setField(evn,f,ev.analysis[f])});
+        if(ev.sources)setSources(evn,ev.sources);
+        if(ev.erosion)MCOLS.forEach((m,mi)=>{if(ev.erosion[m])setEr(evn,mi,ev.erosion[m])});
+      });
+      loadEvent(cur);buildNav();
+      setDriveStatus('נטען ✓',true);
+    }
+  }catch(e){setDriveStatus('שגיאה בטעינה',false);console.error(e);}
+}
+
+setInterval(()=>{if(driveAccessToken)saveToDrive();},5*60*1000);
+
 
 buildNav();loadEvent(0);
 </script>
