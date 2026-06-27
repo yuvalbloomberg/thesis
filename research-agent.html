@@ -254,7 +254,7 @@ select:focus,input:focus{border-color:var(--accent)}
 
 <script>
 const TAVILY_KEY = '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';
-const ANTHROPIC_PROXY = 'https://api.anthropic.com/v1/messages';
+const WORKER_URL = 'https://thesis-proxy.yuvalbloomberg.workers.dev';
 
 const EVENT_KEYWORDS = {
   'PARA': ['הסכמי אוסלו','אינתיפאדה ראשונה','ביטול אמנה פלסטינית','פיגועי התאבדות 1994 1995 1996','רבין פרס ערפאת'],
@@ -320,10 +320,11 @@ async function startSearch(){
   const depth = document.getElementById('selDepth').value;
 
   try {
-    const res = await fetch('https://api.tavily.com/search', {
+    const res = await fetch(WORKER_URL + '/tavily', {
       method: 'POST',
-      headers: {'Content-Type':'application/json','Authorization':'Bearer '+TAVILY_KEY},
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
+        apiKey: TAVILY_KEY,
         query, search_depth: depth, max_results: count,
         include_domains: includeDomains.length ? includeDomains : undefined,
         include_raw_content: true,
@@ -368,7 +369,7 @@ ${results.map((r,i) => `[${i}] כותרת: ${r.title}\nURL: ${r.url}\nתוכן (
 [{"idx":0,"type":"NEWS","phase":"after","relevance":"high","hypothesis":"H1","konzept":["M3"],"reason":"הסבר קצר בעברית"}]`;
 
   try {
-    const res = await fetch(ANTHROPIC_PROXY, {
+    const res = await fetch(WORKER_URL + '/anthropic', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -555,7 +556,7 @@ ${(src.content||'').slice(0,3000)}
 אם אין ציטוטים רלוונטיים, ענה: {"quotes":[]}`;
 
     try{
-      const res=await fetch(ANTHROPIC_PROXY,{
+      const res=await fetch(WORKER_URL+'/anthropic',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:prompt}]})
