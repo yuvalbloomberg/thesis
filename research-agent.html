@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>סוכן מחקר — מלכודת פרדיגמטית v1</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0ede6;--border:rgba(0,0,0,0.1);
+  --text:#1a1a18;--muted:#6b6b65;--hint:#9e9e96;
+  --accent:#1a3a5c;--accent-light:#e8f0f8;
+  --green:#1a6b3c;--green-bg:#edf7f2;
+  --orange:#b55a00;--red:#a32d2d;
+  --mono:'IBM Plex Mono',monospace;--sans:'Heebo',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+.header{background:var(--accent);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header h1{font-size:15px;font-weight:600}
+.header p{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;font-family:var(--mono)}
+.header-actions{margin-right:auto;display:flex;gap:8px}
+.header-btn{font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;font-family:var(--sans);border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff}
+.header-btn:hover{background:rgba(255,255,255,0.2)}
+.header-btn.primary{background:#fff;color:var(--accent);border-color:#fff}
+
+.main{max-width:1100px;margin:0 auto;padding:24px}
+
+/* STEP CARDS */
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden}
+.step-header{padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;font-family:var(--mono)}
+.step-num.done{background:var(--green)}
+.step-title{font-size:13px;font-weight:600}
+.step-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.step-body{padding:16px 18px}
+
+/* CONTROLS */
+.ctrl-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+.ctrl-group{display:flex;flex-direction:column;gap:4px}
+.ctrl-group label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)}
+select,input{font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-family:var(--sans);outline:none}
+select:focus,input:focus{border-color:var(--accent)}
+.btn{font-size:12px;padding:7px 16px;border-radius:5px;cursor:pointer;font-family:var(--sans);font-weight:500;border:none;transition:all 0.15s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#0f2640}
+.btn-secondary{background:var(--surface);color:var(--accent);border:1px solid var(--accent)}.btn-secondary:hover{background:var(--accent-light)}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{opacity:0.9}
+.btn-sm{font-size:11px;padding:4px 10px}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* LOADING */
+.loading{display:flex;align-items:center;gap:10px;padding:16px;font-size:12px;color:var(--muted)}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESULTS */
+.results-grid{display:flex;flex-direction:column;gap:8px}
+.result-card{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.result-card.approved{border-color:var(--green)}
+.result-card.rejected{opacity:0.4}
+.result-header{padding:10px 14px;display:flex;align-items:flex-start;gap:10px;background:var(--surface)}
+.result-header:hover{background:var(--surface2)}
+.result-body{padding:12px 14px;background:var(--bg);border-top:1px solid var(--border);display:none}
+.result-card.open .result-body{display:block}
+.result-title{flex:1;font-size:12px;font-weight:500;line-height:1.4}
+.result-url{font-size:10px;color:var(--accent);margin-top:2px;display:block;word-break:break-all}
+.result-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.rbadge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:500}
+.rb-type{background:#e8f0f8;color:#1a3a5c}
+.rb-phase{background:#f0ede6;color:#4a4a42}
+.rb-h{background:#fdf6e3;color:#7a4f00}
+.rb-pending{background:#fdf0ee;color:#a32d2d}
+.rb-approved{background:#edf7f2;color:#1a6b3c}
+.result-actions{display:flex;gap:6px;flex-shrink:0}
+
+/* CLASSIFICATION PANEL */
+.cls-panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:10px}
+.cls-panel h4{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
+.cls-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
+.cls-label{font-size:11px;color:var(--muted);min-width:80px}
+.cls-options{display:flex;gap:5px;flex-wrap:wrap}
+.cls-opt{font-size:11px;padding:3px 9px;border-radius:3px;border:1px solid var(--border);cursor:pointer;background:var(--surface);color:var(--muted);transition:all 0.1s}
+.cls-opt.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cls-opt.on-h1{background:#fdf6e3;color:#7a4f00;border-color:#e8c97a}
+.cls-opt.on-h2{background:#fdf0ee;color:#a32d2d;border-color:#f5c6c0}
+.cls-opt.on-h3{background:#e8f0f8;color:#1a3a5c;border-color:#b8d0e8}
+
+/* QUOTES */
+.quote-suggestion{background:var(--accent-light);border:1px solid rgba(26,58,92,0.15);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.quote-suggestion-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.qs-num{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--accent)}
+.qs-h{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600}
+.qs-h1{background:#fdf6e3;color:#7a4f00}
+.qs-h2{background:#fdf0ee;color:#a32d2d}
+.qs-h3{background:#e8f0f8;color:#1a3a5c}
+.qs-page{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.qs-text{font-size:12px;line-height:1.6;color:var(--text);margin-bottom:6px;font-style:italic}
+.qs-reason{font-size:11px;color:var(--muted);margin-bottom:8px}
+.qs-actions{display:flex;gap:6px}
+
+/* EXPORT PANEL */
+.export-queue{background:var(--green-bg);border:1px solid rgba(26,107,60,0.2);border-radius:8px;padding:14px;margin-bottom:16px}
+.export-queue h3{font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px}
+.eq-item{font-size:11px;color:var(--text);padding:4px 0;border-bottom:1px solid rgba(26,107,60,0.1);display:flex;align-items:center;gap:8px}
+.eq-item:last-child{border-bottom:none}
+.eq-id{font-family:var(--mono);font-size:10px;color:var(--green);font-weight:600}
+
+/* PROGRESS */
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:12px}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s}
+
+/* EMPTY */
+.empty{padding:24px;text-align:center;font-size:12px;color:var(--hint);border:1px dashed var(--border);border-radius:6px}
+
+/* STATUS */
+.status-bar{font-size:11px;color:var(--muted);padding:6px 0;display:flex;align-items:center;gap:6px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--hint);flex-shrink:0}
+.status-dot.active{background:var(--orange);animation:pulse 1s infinite}
+.status-dot.done{background:var(--green)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.divider{height:1px;background:var(--border);margin:14px 0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>סוכן מחקר — מלכודת פרדיגמטית</h1>
+    <p>איסוף · סיווג · ניתוח · v1</p>
+  </div>
+  <div class="header-actions">
+    <button class="header-btn" onclick="window.open('https://yuvalbloomberg.github.io/thesis/','_blank')">← חזור לכלי המחקר</button>
+    <button class="header-btn primary" id="exportAllBtn" onclick="exportToMainTool()" disabled>ייצא לכלי הראשי (0)</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STEP 1: SETUP -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" id="step1num">1</div>
+      <div>
+        <div class="step-title">הגדרות חיפוש</div>
+        <div class="step-sub">בחר נקודת שבר ופרמטרי חיפוש</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="ctrl-row">
+        <div class="ctrl-group">
+          <label>נקודת שבר</label>
+          <select id="selEvent">
+            <option value="1|PARA|כינון הפרדיגמה|1993-1996">01 — כינון הפרדיגמה (1993–1996)</option>
+            <option value="2|CAMP|קריסת קמפ-דיוויד|2000">02 — קריסת קמפ-דיוויד (2000)</option>
+            <option value="3|HOMAT|מבצע חומת מגן|2002">03 — מבצע חומת מגן (2002)</option>
+            <option value="4|HITNATKUT|תוכנית ההתנתקות|2005">04 — תוכנית ההתנתקות (2005)</option>
+            <option value="5|HAMAS|השתלטות חמאס|2007">05 — השתלטות חמאס (2007)</option>
+            <option value="6|OBAMA|ממשל אובאמה|2009">06 — ממשל אובאמה (2009)</option>
+            <option value="7|SHALIT|עסקת שליט|2011">07 — עסקת שליט (2011)</option>
+            <option value="8|AMUD|מבצע עמוד ענן|2012" selected>08 — מבצע עמוד ענן (2012)</option>
+            <option value="9|TZUK|מבצע צוק איתן|2014">09 — מבצע צוק איתן (2014)</option>
+            <option value="10|GADER|אירועי הגדר|2018">10 — אירועי הגדר (2018)</option>
+            <option value="11|SHOMER|מבצע שומר החומות|2021">11 — מבצע שומר החומות (2021)</option>
+            <option value="12|ALOT|עלות השחר ומגן וחץ|2023">12 — עלות השחר ומגן וחץ (2023)</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>עומק חיפוש</label>
+          <select id="selDepth">
+            <option value="basic">בסיסי (מהיר)</option>
+            <option value="advanced" selected>מתקדם (מומלץ)</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>מספר תוצאות</label>
+          <select id="selCount">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <div class="ctrl-group" style="flex:1">
+          <label>מונחי חיפוש נוספים (אופציונלי)</label>
+          <input id="extraTerms" placeholder='למשל: "כשל מודיעיני" OR "הרתעה"' style="width:100%"/>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-group">
+          <label>מקורות מועדפים</label>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" checked id="src_news"> עיתונות ישראלית</label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" checked id="src_academic"> מאמרים אקדמיים</label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" checked id="src_reports"> דוחות רשמיים</label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" checked id="src_knesset"> כנסת / ממשלה</label>
+            <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" checked id="src_inss"> INSS / מחשבה</label>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="startSearch()">🔍 התחל חיפוש</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: RESULTS -->
+  <div class="step-card" id="step2card" style="display:none">
+    <div class="step-header">
+      <div class="step-num" id="step2num">2</div>
+      <div>
+        <div class="step-title">תוצאות חיפוש — סיווג ראשוני</div>
+        <div class="step-sub" id="step2sub">אשר או דחה כל מקור, ותקן את הסיווג אם נדרש</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="status-bar"><div class="status-dot" id="step2dot"></div><span id="step2status">ממתין...</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="step2progress" style="width:0%"></div></div>
+      <div id="searchResults"></div>
+      <div id="step2actions" style="display:none;margin-top:12px">
+        <button class="btn btn-primary" onclick="startAnalysis()">🧠 נתח תוכן של המקורות המאושרים</button>
+        <span style="font-size:11px;color:var(--muted);margin-right:10px" id="approvedCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: ANALYSIS -->
+  <div class="step-card" id="step3card" style="display:none">
+    <div class="step-header">
+      <div class="step-num" id="step3num">3</div>
+      <div>
+        <div class="step-title">ניתוח תוכן — ציטוטים והשערות</div>
+        <div class="step-sub">Claude קורא כל מקור ומציע ציטוטים רלוונטיים לפי H1/H2/H3</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="status-bar"><div class="status-dot" id="step3dot"></div><span id="step3status">ממתין...</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="step3progress" style="width:0%"></div></div>
+      <div id="analysisResults"></div>
+      <div id="step3actions" style="display:none;margin-top:12px">
+        <button class="btn btn-success" onclick="exportToMainTool()">✓ ייצא את כל המאושרים לכלי הראשי</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT QUEUE -->
+  <div id="exportQueueCard" style="display:none">
+    <div class="export-queue">
+      <h3>✓ מוכן לייצוא לכלי המחקר (<span id="eqCount">0</span> פריטים)</h3>
+      <div id="exportQueueList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TAVILY_KEY = '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';
+const ANTHROPIC_PROXY = 'https://api.anthropic.com/v1/messages';
+
+const EVENT_KEYWORDS = {
+  'PARA': ['הסכמי אוסלו','אינתיפאדה ראשונה','ביטול אמנה פלסטינית','פיגועי התאבדות 1994 1995 1996','רבין פרס ערפאת'],
+  'CAMP': ['קמפ דיוויד 2000','אינתיפאדה שנייה','קריסת מו"מ','ברק ערפאת קלינטון'],
+  'HOMAT': ['מבצע חומת מגן 2002','ג\'נין','פיגועי התאבדות','שרון','מחנה פליטים'],
+  'HITNATKUT': ['התנתקות עזה 2005','פינוי מתנחלים','שרון דיסאנגייג\'מנט'],
+  'HAMAS': ['חמאס עזה 2007','הפיכת חמאס','השתלטות עזה','מצור עזה'],
+  'OBAMA': ['אובמה ישראל 2009','הקפאת התנחלויות','נאום קהיר','יחסי אמריקה ישראל'],
+  'SHALIT': ['עסקת שליט 2011','שחרור אסירים','גלעד שליט','חמאס חיזבאללה'],
+  'AMUD': ['מבצע עמוד ענן 2012','רצועת עזה','טילים','הפסקת אש','פילר אוף דיפנס'],
+  'TZUK': ['מבצע צוק איתן 2014','מנהרות חמאס','פרוטקטיב אדג\'','מבצע קרקעי'],
+  'GADER': ['מצעד השיבה 2018','גדר עזה','נסיפה','גרבהרד'],
+  'SHOMER': ['מבצע שומר החומות 2021','מאי 2021','עימות עזה','ירושלים'],
+  'ALOT': ['עלות השחר 2022','מגן וחץ 2023','פיקאל זיאד','אסלאמיק ג\'יהאד'],
+};
+
+const SOURCES_MAP = {
+  news: ['haaretz.co.il','ynet.co.il','maariv.co.il','calcalist.co.il','kan.org.il','walla.co.il','jpost.com','timesofisrael.com'],
+  academic: ['scholar.google.com','jstor.org','academia.edu','researchgate.net','tandfonline.com','sagepub.com'],
+  reports: ['mevaker.gov.il','knesset.gov.il','mod.gov.il'],
+  knesset: ['knesset.gov.il','knesset-ai.com'],
+  inss: ['inss.org.il','jstribune.com','besa.ac.il','mitvim.org.il','molad.org'],
+};
+
+let currentEvent = null;
+let searchResults = [];
+let approvedSources = [];
+let exportQueue = [];
+
+function getEventInfo(){
+  const val = document.getElementById('selEvent').value;
+  const parts = val.split('|');
+  return {n:parseInt(parts[0]),code:parts[1],name:parts[2],year:parts[3]};
+}
+
+async function startSearch(){
+  const ev = getEventInfo();
+  currentEvent = ev;
+  searchResults = [];
+  approvedSources = [];
+  exportQueue = [];
+  updateExportBtn();
+
+  document.getElementById('step2card').style.display='block';
+  document.getElementById('step2dot').className='status-dot active';
+  document.getElementById('step2status').textContent='מחפש מקורות...';
+  document.getElementById('step2progress').style.width='10%';
+  document.getElementById('searchResults').innerHTML='<div class="loading"><div class="spinner"></div>Tavily מחפש מקורות רלוונטיים...</div>';
+  document.getElementById('step2actions').style.display='none';
+
+  const keywords = EVENT_KEYWORDS[ev.code] || [ev.name];
+  const extraTerms = document.getElementById('extraTerms').value.trim();
+  
+  const includeDomains = [];
+  if(document.getElementById('src_news').checked) includeDomains.push(...SOURCES_MAP.news);
+  if(document.getElementById('src_academic').checked) includeDomains.push(...SOURCES_MAP.academic);
+  if(document.getElementById('src_reports').checked) includeDomains.push(...SOURCES_MAP.reports);
+  if(document.getElementById('src_knesset').checked) includeDomains.push(...SOURCES_MAP.knesset);
+  if(document.getElementById('src_inss').checked) includeDomains.push(...SOURCES_MAP.inss);
+
+  const query = keywords.slice(0,3).join(' OR ') + (extraTerms ? ' ' + extraTerms : '') + ' ישראל ביטחון מדיניות';
+  const count = parseInt(document.getElementById('selCount').value);
+  const depth = document.getElementById('selDepth').value;
+
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+TAVILY_KEY},
+      body: JSON.stringify({
+        query, search_depth: depth, max_results: count,
+        include_domains: includeDomains.length ? includeDomains : undefined,
+        include_raw_content: true,
+      })
+    });
+    const data = await res.json();
+    
+    document.getElementById('step2progress').style.width='40%';
+    document.getElementById('step2status').textContent='מסווג מקורות עם Claude...';
+
+    await classifyResults(data.results || [], ev);
+    
+  } catch(e) {
+    document.getElementById('searchResults').innerHTML='<div class="empty">שגיאה בחיפוש: '+e.message+'</div>';
+    document.getElementById('step2dot').className='status-dot';
+    document.getElementById('step2status').textContent='שגיאה';
+  }
+}
+
+async function classifyResults(results, ev){
+  if(!results.length){
+    document.getElementById('searchResults').innerHTML='<div class="empty">לא נמצאו תוצאות. נסה לשנות את מונחי החיפוש.</div>';
+    return;
+  }
+
+  // Call Claude to classify each result
+  const prompt = `אתה עוזר מחקר לתזה על "מלכודת פרדיגמטית" בישראל 1993-2023.
+
+נקודת שבר: ${ev.name} (${ev.year})
+
+להלן ${results.length} מקורות שנמצאו בחיפוש. סווג כל אחד לפי:
+1. סוג: DOC (פרוטוקול/מסמך רשמי) / REP (דו"ח) / ACA (מאמר אקדמי) / NEWS (עיתונות) / INT (ראיון/עדות)
+2. שלב: before (לפני האירוע) / during (תוך כדי) / after (אחרי)
+3. רלוונטיות לתזה: high/medium/low
+4. השערה ראשית: H1 (Confirmation Bias ברמת מיקרו) / H2 (Groupthink ברמת מזו) / H3 (אינטרס ארגוני ברמת מאקרו) / none
+5. מרכיבי קונספציה: M1 (שינוי פלסטיני) M2 (מיקור חוץ) M3 (רציונליות כלכלית) M4 (לאומיות מערבית) M5 (עיוורון לאיסלאם) M6 (ישות כנכס)
+
+המקורות:
+${results.map((r,i) => `[${i}] כותרת: ${r.title}\nURL: ${r.url}\nתוכן (ראשי): ${(r.content||'').slice(0,300)}`).join('\n\n')}
+
+ענה אך ורק ב-JSON תקני, ללא backticks, בפורמט:
+[{"idx":0,"type":"NEWS","phase":"after","relevance":"high","hypothesis":"H1","konzept":["M3"],"reason":"הסבר קצר בעברית"}]`;
+
+  try {
+    const res = await fetch(ANTHROPIC_PROXY, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:2000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '[]';
+    let classifications = [];
+    try { classifications = JSON.parse(text.replace(/```json|```/g,'').trim()); } catch(e){ classifications = []; }
+
+    searchResults = results.map((r,i) => {
+      const cls = classifications.find(c=>c.idx===i) || {};
+      return {
+        id: `${ev.code}-${cls.type||'NEWS'}-${String(i+1).padStart(3,'0')}`,
+        title: r.title, url: r.url,
+        content: r.raw_content || r.content || '',
+        type: cls.type || 'NEWS',
+        phase: cls.phase || 'after',
+        relevance: cls.relevance || 'medium',
+        hypothesis: cls.hypothesis || 'none',
+        konzept: cls.konzept || [],
+        reason: cls.reason || '',
+        approved: null,
+        quotes: [],
+      };
+    });
+
+    document.getElementById('step2progress').style.width='100%';
+    document.getElementById('step2dot').className='status-dot done';
+    document.getElementById('step2status').textContent=`נמצאו ${results.length} מקורות — אשר או דחה כל אחד`;
+    renderSearchResults();
+
+  } catch(e) {
+    document.getElementById('step2status').textContent='שגיאה בסיווג: '+e.message;
+  }
+}
+
+function renderSearchResults(){
+  const typeLabel={DOC:'פרוטוקול',REP:'דו"ח',ACA:'מאמר',INT:'ראיון',NEWS:'עיתונות'};
+  const phaseLabel={before:'לפני',during:'תוך כדי',after:'אחרי'};
+  const relColor={high:'#1a6b3c',medium:'#b55a00',low:'#9e9e96'};
+  
+  document.getElementById('searchResults').innerHTML = searchResults.map((r,i) => `
+    <div class="result-card${r.approved===true?' approved':r.approved===false?' rejected':''}" id="rc-${i}">
+      <div class="result-header" onclick="toggleResult(${i})">
+        <div style="flex:1">
+          <div class="result-title">${r.title}</div>
+          <a class="result-url" href="${r.url}" target="_blank" onclick="event.stopPropagation()">${r.url}</a>
+          <div class="result-badges">
+            <span class="rbadge rb-type">${typeLabel[r.type]||r.type}</span>
+            <span class="rbadge rb-phase">${phaseLabel[r.phase]||r.phase}</span>
+            ${r.hypothesis!=='none'?`<span class="rbadge rb-h">${r.hypothesis}</span>`:''}
+            <span style="font-size:9px;color:${relColor[r.relevance]};font-weight:600">${r.relevance==='high'?'רלוונטי מאוד':r.relevance==='medium'?'רלוונטי':'פחות רלוונטי'}</span>
+            ${r.konzept.length?r.konzept.map(k=>`<span class="rbadge" style="background:#e8f0f8;color:#1a3a5c">${k}</span>`).join(''):''}
+          </div>
+          ${r.reason?`<div style="font-size:11px;color:var(--muted);margin-top:4px">💡 ${r.reason}</div>`:''}
+        </div>
+        <div class="result-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-success btn-sm" onclick="approveResult(${i})">✓ אשר</button>
+          <button class="btn btn-sm" style="background:#fcebeb;color:#a32d2d;border:none" onclick="rejectResult(${i})">✗ דחה</button>
+        </div>
+      </div>
+      <div class="result-body" id="rb-${i}">
+        <div class="cls-panel">
+          <h4>תקן סיווג</h4>
+          <div class="cls-row">
+            <span class="cls-label">סוג:</span>
+            <div class="cls-options">
+              ${['DOC','REP','ACA','INT','NEWS'].map(t=>`<span class="cls-opt${r.type===t?' on':''}" onclick="setClass(${i},'type','${t}',this,'DOC REP ACA INT NEWS')">${typeLabel[t]}</span>`).join('')}
+            </div>
+          </div>
+          <div class="cls-row">
+            <span class="cls-label">שלב:</span>
+            <div class="cls-options">
+              ${['before','during','after'].map(p=>`<span class="cls-opt${r.phase===p?' on':''}" onclick="setClass(${i},'phase','${p}',this,'before during after')">${phaseLabel[p]}</span>`).join('')}
+            </div>
+          </div>
+          <div class="cls-row">
+            <span class="cls-label">השערה:</span>
+            <div class="cls-options">
+              ${['H1','H2','H3','none'].map(h=>`<span class="cls-opt${r.hypothesis===h?' on':''}${r.hypothesis===h&&h!=='none'?' on-'+h.toLowerCase():''}" onclick="setClass(${i},'hypothesis','${h}',this,'H1 H2 H3 none')">${h==='none'?'—':h}</span>`).join('')}
+            </div>
+          </div>
+          <div class="cls-row">
+            <span class="cls-label">מרכיבים:</span>
+            <div class="cls-options">
+              ${['M1','M2','M3','M4','M5','M6'].map(m=>`<span class="cls-opt${r.konzept.includes(m)?' on':''}" onclick="toggleKonzept(${i},'${m}',this)">${m}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);max-height:120px;overflow-y:auto;background:var(--surface2);padding:8px;border-radius:4px;line-height:1.6">${(r.content||'').slice(0,500)}...</div>
+      </div>
+    </div>`).join('');
+  
+  updateStep2Actions();
+}
+
+function toggleResult(i){
+  const card = document.getElementById('rc-'+i);
+  const body = document.getElementById('rb-'+i);
+  if(card) card.classList.toggle('open');
+}
+
+function setClass(i,field,val,el,group){
+  searchResults[i][field]=val;
+  const parent = el.parentElement;
+  parent.querySelectorAll('.cls-opt').forEach(e=>{
+    e.className='cls-opt';
+    if(e===el){e.classList.add('on');if(field==='hypothesis'&&val!=='none')e.classList.add('on-'+val.toLowerCase())}
+  });
+}
+
+function toggleKonzept(i,m,el){
+  const arr=searchResults[i].konzept;
+  if(arr.includes(m)){arr.splice(arr.indexOf(m),1);el.classList.remove('on')}
+  else{arr.push(m);el.classList.add('on')}
+}
+
+function approveResult(i){
+  searchResults[i].approved=true;
+  const card=document.getElementById('rc-'+i);
+  if(card){card.classList.add('approved');card.classList.remove('rejected')}
+  updateStep2Actions();
+}
+
+function rejectResult(i){
+  searchResults[i].approved=false;
+  const card=document.getElementById('rc-'+i);
+  if(card){card.classList.add('rejected');card.classList.remove('approved')}
+  updateStep2Actions();
+}
+
+function updateStep2Actions(){
+  const approved=searchResults.filter(r=>r.approved===true);
+  document.getElementById('approvedCount').textContent=`${approved.length} מקורות מאושרים`;
+  document.getElementById('step2actions').style.display=approved.length?'block':'none';
+}
+
+async function startAnalysis(){
+  const approved=searchResults.filter(r=>r.approved===true);
+  if(!approved.length) return;
+
+  document.getElementById('step3card').style.display='block';
+  document.getElementById('step3dot').className='status-dot active';
+  document.getElementById('step3status').textContent='מנתח מקורות...';
+  document.getElementById('analysisResults').innerHTML='<div class="loading"><div class="spinner"></div>Claude קורא ומנתח את המקורות המאושרים...</div>';
+
+  const allAnalysis = [];
+
+  for(let idx=0; idx<approved.length; idx++){
+    const src=approved[idx];
+    document.getElementById('step3status').textContent=`מנתח מקור ${idx+1} מתוך ${approved.length}: ${src.title.slice(0,40)}...`;
+    document.getElementById('step3progress').style.width=`${((idx+1)/approved.length)*100}%`;
+
+    const prompt = `אתה עוזר מחקר לתזה על "מלכודת פרדיגמטית" בישראל.
+
+המחקר בוחן שלוש השערות:
+H1 (מיקרו) — Confirmation Bias: מנהיגים סיננו מידע סותר בשל מחויבות לפרדיגמה
+H2 (מזו) — Groupthink: הומוגניות קבוצתית הדחיקה קולות ביקורתיים  
+H3 (מאקרו) — אינטרס ארגוני: המערכת העדיפה פתרונות טכנולוגיים על שינוי תפיסתי
+
+ששת מרכיבי הקונספציה: M1=שינוי פלסטיני, M2=מיקור חוץ ביטחוני, M3=רציונליות כלכלית, M4=לאומיות מערבית, M5=עיוורון לאיסלאם, M6=ישות כנכס
+
+נקודת שבר: ${currentEvent.name} (${currentEvent.year})
+
+מקור: ${src.title}
+URL: ${src.url}
+תוכן:
+${(src.content||'').slice(0,3000)}
+
+משימה: מצא עד 5 ציטוטים או קטעים רלוונטיים לתזה. לכל ציטוט ציין:
+- הטקסט המדויק (או סיכום אם ארוך מדי)
+- עמוד (אם ידוע)
+- איזו השערה הוא תומך (H1/H2/H3)
+- מדוע הוא רלוונטי
+- האם תומך בפרדיגמה או מפריך אותה
+
+ענה אך ורק ב-JSON תקני ללא backticks:
+{"quotes":[{"text":"...","page":"","hypothesis":"H1","support":"refute","reason":"הסבר קצר"}]}
+
+אם אין ציטוטים רלוונטיים, ענה: {"quotes":[]}`;
+
+    try{
+      const res=await fetch(ANTHROPIC_PROXY,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+      });
+      const data=await res.json();
+      const text=data.content?.[0]?.text||'{}';
+      let parsed={quotes:[]};
+      try{parsed=JSON.parse(text.replace(/```json|```/g,'').trim())}catch(e){}
+      src.quotes=parsed.quotes||[];
+      allAnalysis.push(src);
+    }catch(e){
+      src.quotes=[];
+      allAnalysis.push(src);
+    }
+  }
+
+  document.getElementById('step3dot').className='status-dot done';
+  document.getElementById('step3status').textContent='ניתוח הושלם — אשר ציטוטים להוספה לכלי';
+  renderAnalysis(allAnalysis);
+}
+
+function renderAnalysis(sources){
+  const hClass={H1:'qs-h1',H2:'qs-h2',H3:'qs-h3'};
+  const typeLabel={DOC:'פרוטוקול',REP:'דו"ח',ACA:'מאמר',INT:'ראיון',NEWS:'עיתונות'};
+  
+  document.getElementById('analysisResults').innerHTML = sources.map((src,si) => `
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        <span style="font-family:var(--mono);font-size:10px;background:#1a1a18;color:#fff;padding:2px 7px;border-radius:3px">${src.id}</span>
+        ${src.title.slice(0,60)}${src.title.length>60?'...':''}
+        <span class="rbadge rb-type">${typeLabel[src.type]||src.type}</span>
+      </div>
+      ${src.quotes.length===0
+        ? '<div class="empty" style="padding:10px">לא נמצאו ציטוטים רלוונטיים במקור זה</div>'
+        : src.quotes.map((q,qi)=>`
+          <div class="quote-suggestion" id="qs-${si}-${qi}">
+            <div class="quote-suggestion-header">
+              <span class="qs-num">${qi+1}</span>
+              <span class="qs-h ${hClass[q.hypothesis]||''}">${q.hypothesis||'—'}</span>
+              ${q.page?`<span class="qs-page">עמ׳ ${q.page}</span>`:''}
+              <span style="font-size:10px;color:${q.support==='support'?'var(--green)':q.support==='refute'?'var(--red)':'var(--muted)'}">
+                ${q.support==='support'?'תומך בפרדיגמה':q.support==='refute'?'מפריך פרדיגמה':'—'}
+              </span>
+            </div>
+            <div class="qs-text">"${q.text}"</div>
+            <div class="qs-reason">💡 ${q.reason||''}</div>
+            <div class="qs-actions">
+              <button class="btn btn-success btn-sm" onclick="approveQuote(${si},${qi})">✓ הוסף לכלי</button>
+              <button class="btn btn-sm" style="background:#fcebeb;color:#a32d2d;border:none" onclick="document.getElementById('qs-${si}-${qi}').style.opacity='0.3'">✗ דחה</button>
+            </div>
+          </div>`).join('')}
+    </div>`).join('<div class="divider"></div>');
+
+  document.getElementById('step3actions').style.display='block';
+}
+
+function approveQuote(si,qi){
+  const src=searchResults.filter(r=>r.approved===true)[si];
+  const q=src.quotes[qi];
+  if(!src||!q) return;
+
+  const item={
+    evn: currentEvent.n,
+    evCode: currentEvent.code,
+    id: src.id,
+    type: src.type,
+    phase: src.phase,
+    proof: 'none',
+    analysisField: q.hypothesis==='H1'?'h1':q.hypothesis==='H2'?'h2':q.hypothesis==='H3'?'h3':'response',
+    txt: src.title,
+    url: src.url,
+    konzept: src.konzept,
+    quote: {text:q.text,page:q.page||'',title:`ציטוט — ${src.title.slice(0,30)}`,hypothesis:q.hypothesis,support:q.support,reason:q.reason},
+    ana:{summary:'',hExplain:q.reason||'',proofExplain:'',limitations:'',support:q.support,credibility:[]},
+    quotes:[{title:`ציטוט — ${src.title.slice(0,30)}`,text:q.text,page:q.page||''}],
+    ts:Date.now()
+  };
+
+  exportQueue.push(item);
+  updateExportQueue();
+  document.getElementById(`qs-${si}-${qi}`).style.border='2px solid var(--green)';
+  document.getElementById(`qs-${si}-${qi}`).style.background='var(--green-bg)';
+}
+
+function updateExportQueue(){
+  const count=exportQueue.length;
+  document.getElementById('eqCount').textContent=count;
+  updateExportBtn();
+  if(!count){document.getElementById('exportQueueCard').style.display='none';return;}
+  document.getElementById('exportQueueCard').style.display='block';
+  document.getElementById('exportQueueList').innerHTML=exportQueue.map(item=>`
+    <div class="eq-item">
+      <span class="eq-id">${item.id}</span>
+      <span>${item.txt.slice(0,50)}</span>
+      <span style="font-size:9px;color:var(--muted)">${item.quote?.hypothesis||''}</span>
+    </div>`).join('');
+}
+
+function updateExportBtn(){
+  const btn=document.getElementById('exportAllBtn');
+  btn.textContent=`ייצא לכלי הראשי (${exportQueue.length})`;
+  btn.disabled=!exportQueue.length;
+}
+
+function exportToMainTool(){
+  if(!exportQueue.length){alert('אין פריטים מאושרים לייצוא');return;}
+  
+  // Save to localStorage under pt5 keys (same as main tool)
+  exportQueue.forEach(item=>{
+    const evn=item.evn;
+    const srcsKey=`pt5_e${evn}_srcs`;
+    let srcs=[];
+    try{const r=localStorage.getItem(srcsKey);if(r)srcs=JSON.parse(r)}catch(e){}
+    
+    // Check for duplicate URL
+    const exists=srcs.find(s=>s.url===item.url&&s.id===item.id);
+    if(!exists){
+      srcs.push({
+        id:item.id,t:item.type,phase:item.phase,proof:item.proof,
+        analysisField:item.analysisField,txt:item.txt,url:item.url,
+        konzept:item.konzept,ana:item.ana,quotes:item.quotes,ts:item.ts
+      });
+      localStorage.setItem(srcsKey,JSON.stringify(srcs));
+    }
+  });
+
+  alert(`✓ ${exportQueue.length} מקורות יוצאו לכלי המחקר בהצלחה!\n\nפתח את הכלי הראשי וגלול לנקודת השבר הרלוונטית.`);
+  exportQueue=[];
+  updateExportQueue();
+}
+</script>
+</body>
+</html>
