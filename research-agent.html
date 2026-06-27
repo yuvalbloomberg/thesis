@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>סוכן מחקר — מלכודת פרדיגמטית v1</title>
+<title>סוכן מחקר — מלכודת פרדיגמטית v2</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -128,10 +128,12 @@ select:focus,input:focus{border-color:var(--accent)}
 <div class="header">
   <div>
     <h1>סוכן מחקר — מלכודת פרדיגמטית</h1>
-    <p>איסוף · סיווג · ניתוח · v1</p>
+    <p>איסוף · סיווג · ניתוח · v2</p>
   </div>
   <div class="header-actions">
     <button class="header-btn" onclick="window.open('https://yuvalbloomberg.github.io/thesis/','_blank')">← חזור לכלי המחקר</button>
+    <button class="header-btn" id="restoreBtn" onclick="restoreSession()" style="display:none;background:rgba(255,200,0,0.2);border-color:rgba(255,200,0,0.5)">⟳ המשך סשן קודם</button>
+    <button class="header-btn" id="clearBtn" onclick="if(confirm('לנקות את כל הסשן?')){clearAgentState();location.reload()}" style="display:none">🗑 נקה סשן</button>
     <button class="header-btn primary" id="exportAllBtn" onclick="exportToMainTool()" disabled>ייצא לכלי הראשי (0)</button>
   </div>
 </div>
@@ -218,6 +220,7 @@ select:focus,input:focus{border-color:var(--accent)}
       <div id="searchResults"></div>
       <div id="step2actions" style="display:none;margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="startAnalysis()">🧠 נתח תוכן של המקורות המאושרים</button>
+        <button class="btn btn-secondary" onclick="exportApprovedWithoutAnalysis()">📤 ייצא מאושרים ללא ניתוח</button>
         <button class="btn btn-secondary" onclick="searchAgain()">🔍 חיפוש נוסף על אותה נקודה</button>
         <span style="font-size:11px;color:var(--muted)" id="approvedCount"></span>
       </div>
@@ -287,6 +290,60 @@ let approvedSources = [];
 let exportQueue = [];
 let seenUrls = new Set();
 let searchRound = 0;
+const AGENT_KEY = 'thesis_agent_v2';
+
+function saveAgentState(){
+  const state = {
+    eventCode: currentEvent ? currentEvent.code : null,
+    eventN: currentEvent ? currentEvent.n : null,
+    searchResults,
+    exportQueue,
+    seenUrls: [...seenUrls],
+    searchRound,
+    timestamp: Date.now()
+  };
+  localStorage.setItem(AGENT_KEY, JSON.stringify(state));
+}
+
+function loadAgentState(){
+  try{
+    const raw = localStorage.getItem(AGENT_KEY);
+    if(!raw) return false;
+    const state = JSON.parse(raw);
+    if(!state.eventCode) return false;
+    // Find event
+    const evParts = document.getElementById('selEvent');
+    // Restore state
+    searchResults = state.searchResults || [];
+    exportQueue = state.exportQueue || [];
+    seenUrls = new Set(state.seenUrls || []);
+    searchRound = state.searchRound || 0;
+    // Find and select the event in dropdown
+    const opts = document.getElementById('selEvent').options;
+    for(let i=0;i<opts.length;i++){
+      if(opts[i].value.startsWith(state.eventN+'|')){
+        document.getElementById('selEvent').selectedIndex=i;
+        break;
+      }
+    }
+    currentEvent = {
+      n: state.eventN,
+      code: state.eventCode,
+      name: state.searchResults?.[0]?.evName || state.eventCode,
+      year: ''
+    };
+    // Try to get proper event info from dropdown
+    const evInfo = getEventInfo();
+    if(evInfo.code === state.eventCode) currentEvent = evInfo;
+    return true;
+  }catch(e){ return false; }
+}
+
+function clearAgentState(){
+  localStorage.removeItem(AGENT_KEY);
+  searchResults=[];exportQueue=[];seenUrls=new Set();searchRound=0;
+  updateExportBtn();
+}
 
 function getEventInfo(){
   const val = document.getElementById('selEvent').value;
@@ -426,6 +483,7 @@ ${results.map((r,i) => `[${i}] כותרת: ${r.title}\nURL: ${r.url}\nתוכן (
     const totalSoFar = searchResults.length;
     document.getElementById('step2status').textContent=`סה"כ ${totalSoFar} מקורות (סבב ${searchRound+1}) — אשר או דחה כל אחד`;
     renderSearchResults();
+    saveAgentState();
 
   } catch(e) {
     document.getElementById('step2status').textContent='שגיאה בסיווג: '+e.message;
@@ -519,6 +577,7 @@ function approveResult(i){
   const card=document.getElementById('rc-'+i);
   if(card){card.classList.add('approved');card.classList.remove('rejected')}
   updateStep2Actions();
+  saveAgentState();
 }
 
 function rejectResult(i){
@@ -526,12 +585,14 @@ function rejectResult(i){
   const card=document.getElementById('rc-'+i);
   if(card){card.classList.add('rejected');card.classList.remove('approved')}
   updateStep2Actions();
+  saveAgentState();
 }
 
 function deleteResult(i){
   if(!confirm('למחוק מקור זה מהרשימה?'))return;
   searchResults.splice(i,1);
   renderSearchResults();
+  saveAgentState();
 }
 
 function updateStep2Actions(){
@@ -666,6 +727,7 @@ function approveQuote(si,qi){
 
   exportQueue.push(item);
   updateExportQueue();
+  saveAgentState();
   document.getElementById(`qs-${si}-${qi}`).style.border='2px solid var(--green)';
   document.getElementById(`qs-${si}-${qi}`).style.background='var(--green-bg)';
 }
@@ -690,6 +752,32 @@ function updateExportBtn(){
   btn.disabled=!exportQueue.length;
 }
 
+function exportApprovedWithoutAnalysis(){
+  const approved = searchResults.filter(r=>r.approved===true);
+  if(!approved.length){ alert('אין מקורות מאושרים'); return; }
+  
+  let added=0, skipped=0;
+  approved.forEach(src=>{
+    const evn = currentEvent.n;
+    const srcsKey = 'pt5_e'+evn+'_srcs';
+    let srcs=[];
+    try{const r=localStorage.getItem(srcsKey);if(r)srcs=JSON.parse(r)}catch(e){}
+    // Check duplicate by URL
+    const exists = srcs.find(s=>s.url===src.url);
+    if(exists){ skipped++; return; }
+    srcs.push({
+      id: src.id, t: src.type, phase: src.phase, proof: 'none',
+      analysisField: src.hypothesis!=='none'?src.hypothesis.toLowerCase():'response',
+      txt: src.title, url: src.url, konzept: src.konzept,
+      ana:{summary:'',hExplain:'',proofExplain:'',limitations:'',support:'',credibility:[]},
+      quotes:[], ts: Date.now()
+    });
+    localStorage.setItem(srcsKey, JSON.stringify(srcs));
+    added++;
+  });
+  alert('✓ יוצאו '+added+' מקורות ללא ניתוח.'+(skipped?' '+skipped+' כבר קיימים ודולגו.':''));
+}
+
 function exportToMainTool(){
   if(!exportQueue.length){alert('אין פריטים מאושרים לייצוא');return;}
   
@@ -701,7 +789,8 @@ function exportToMainTool(){
     try{const r=localStorage.getItem(srcsKey);if(r)srcs=JSON.parse(r)}catch(e){}
     
     // Check for duplicate URL
-    const exists=srcs.find(s=>s.url===item.url&&s.id===item.id);
+    // Check duplicate by URL
+    const exists=srcs.find(s=>s.url===item.url);
     if(!exists){
       srcs.push({
         id:item.id,t:item.type,phase:item.phase,proof:item.proof,
@@ -712,10 +801,39 @@ function exportToMainTool(){
     }
   });
 
-  alert(`✓ ${exportQueue.length} מקורות יוצאו לכלי המחקר בהצלחה!\n\nפתח את הכלי הראשי וגלול לנקודת השבר הרלוונטית.`);
+  alert('✓ מקורות יוצאו לכלי המחקר בהצלחה! פתח את הכלי הראשי לצפייה.');
   exportQueue=[];
   updateExportQueue();
 }
+
+function restoreSession(){
+  if(loadAgentState()){
+    document.getElementById('step2card').style.display='block';
+    document.getElementById('step2dot').className='status-dot done';
+    document.getElementById('step2status').textContent='סשן שוחזר — '+searchResults.length+' מקורות ('+[...seenUrls].length+' URL נסרקו)';
+    document.getElementById('step2progress').style.width='100%';
+    renderSearchResults();
+    updateExportQueue();
+    document.getElementById('clearBtn').style.display='block';
+    document.getElementById('restoreBtn').style.display='none';
+  }
+}
+
+// Check for saved session on load
+(function(){
+  const raw = localStorage.getItem(AGENT_KEY);
+  if(raw){
+    try{
+      const s = JSON.parse(raw);
+      if(s && s.searchResults && s.searchResults.length){
+        const mins = Math.round((Date.now()-s.timestamp)/60000);
+        document.getElementById('restoreBtn').textContent = '⟳ המשך סשן קודם ('+s.searchResults.length+' מקורות, לפני '+mins+' דק)';
+        document.getElementById('restoreBtn').style.display='block';
+        document.getElementById('clearBtn').style.display='block';
+      }
+    }catch(e){}
+  }
+})();
 </script>
 </body>
 </html>
