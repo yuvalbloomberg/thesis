@@ -216,9 +216,10 @@ select:focus,input:focus{border-color:var(--accent)}
       <div class="status-bar"><div class="status-dot" id="step2dot"></div><span id="step2status">ממתין...</span></div>
       <div class="progress-bar"><div class="progress-fill" id="step2progress" style="width:0%"></div></div>
       <div id="searchResults"></div>
-      <div id="step2actions" style="display:none;margin-top:12px">
+      <div id="step2actions" style="display:none;margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="startAnalysis()">🧠 נתח תוכן של המקורות המאושרים</button>
-        <span style="font-size:11px;color:var(--muted);margin-right:10px" id="approvedCount"></span>
+        <button class="btn btn-secondary" onclick="searchAgain()">🔍 חיפוש נוסף על אותה נקודה</button>
+        <span style="font-size:11px;color:var(--muted)" id="approvedCount"></span>
       </div>
     </div>
   </div>
@@ -236,8 +237,9 @@ select:focus,input:focus{border-color:var(--accent)}
       <div class="status-bar"><div class="status-dot" id="step3dot"></div><span id="step3status">ממתין...</span></div>
       <div class="progress-bar"><div class="progress-fill" id="step3progress" style="width:0%"></div></div>
       <div id="analysisResults"></div>
-      <div id="step3actions" style="display:none;margin-top:12px">
+      <div id="step3actions" style="display:none;margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-success" onclick="exportToMainTool()">✓ ייצא את כל המאושרים לכלי הראשי</button>
+        <button class="btn btn-secondary" onclick="searchAgain()">🔍 חיפוש נוסף על אותה נקודה</button>
       </div>
     </div>
   </div>
@@ -283,6 +285,8 @@ let currentEvent = null;
 let searchResults = [];
 let approvedSources = [];
 let exportQueue = [];
+let seenUrls = new Set();
+let searchRound = 0;
 
 function getEventInfo(){
   const val = document.getElementById('selEvent').value;
@@ -290,21 +294,32 @@ function getEventInfo(){
   return {n:parseInt(parts[0]),code:parts[1],name:parts[2],year:parts[3]};
 }
 
-async function startSearch(){
-  const ev = getEventInfo();
-  currentEvent = ev;
-  searchResults = [];
-  approvedSources = [];
-  exportQueue = [];
-  updateExportBtn();
+function searchAgain(){
+  document.getElementById('step2card').style.display='block';
+  document.getElementById('step2dot').className='status-dot active';
+  document.getElementById('step2status').textContent='מחפש מקורות נוספים...';
+  document.getElementById('step2progress').style.width='0%';
+  document.getElementById('step2actions').style.display='none';
+  searchRound++;
+  _doSearch();
+}
 
+async function startSearch(){
+  const ev=getEventInfo();
+  currentEvent=ev;
+  searchResults=[];seenUrls=new Set();searchRound=0;
+  exportQueue=[];updateExportBtn();
   document.getElementById('step2card').style.display='block';
   document.getElementById('step2dot').className='status-dot active';
   document.getElementById('step2status').textContent='מחפש מקורות...';
   document.getElementById('step2progress').style.width='10%';
   document.getElementById('searchResults').innerHTML='<div class="loading"><div class="spinner"></div>Tavily מחפש מקורות רלוונטיים...</div>';
   document.getElementById('step2actions').style.display='none';
+  _doSearch();
+}
 
+async function _doSearch(){
+  const ev=currentEvent;
   const keywords = EVENT_KEYWORDS[ev.code] || [ev.name];
   const extraTerms = document.getElementById('extraTerms').value.trim();
   
@@ -345,8 +360,14 @@ async function startSearch(){
 }
 
 async function classifyResults(results, ev){
+  // Filter out already-seen URLs
+  const newResults = results.filter(r=>!seenUrls.has(r.url));
+  newResults.forEach(r=>seenUrls.add(r.url));
+  results = newResults;
   if(!results.length){
-    document.getElementById('searchResults').innerHTML='<div class="empty">לא נמצאו תוצאות. נסה לשנות את מונחי החיפוש.</div>';
+    document.getElementById('searchResults').innerHTML+='<div class="empty" style="margin-top:8px">כל התוצאות החדשות כבר קיימות. נסה לשנות מונחי חיפוש.</div>';
+    document.getElementById('step2dot').className='status-dot done';
+    document.getElementById('step2status').textContent='לא נמצאו מקורות חדשים';
     return;
   }
 
@@ -402,7 +423,8 @@ ${results.map((r,i) => `[${i}] כותרת: ${r.title}\nURL: ${r.url}\nתוכן (
 
     document.getElementById('step2progress').style.width='100%';
     document.getElementById('step2dot').className='status-dot done';
-    document.getElementById('step2status').textContent=`נמצאו ${results.length} מקורות — אשר או דחה כל אחד`;
+    const totalSoFar = searchResults.length;
+    document.getElementById('step2status').textContent=`סה"כ ${totalSoFar} מקורות (סבב ${searchRound+1}) — אשר או דחה כל אחד`;
     renderSearchResults();
 
   } catch(e) {
@@ -433,6 +455,7 @@ function renderSearchResults(){
         <div class="result-actions" onclick="event.stopPropagation()">
           <button class="btn btn-success btn-sm" onclick="approveResult(${i})">✓ אשר</button>
           <button class="btn btn-sm" style="background:#fcebeb;color:#a32d2d;border:none" onclick="rejectResult(${i})">✗ דחה</button>
+          <button class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border)" onclick="deleteResult(${i})">🗑</button>
         </div>
       </div>
       <div class="result-body" id="rb-${i}">
@@ -503,6 +526,12 @@ function rejectResult(i){
   const card=document.getElementById('rc-'+i);
   if(card){card.classList.add('rejected');card.classList.remove('approved')}
   updateStep2Actions();
+}
+
+function deleteResult(i){
+  if(!confirm('למחוק מקור זה מהרשימה?'))return;
+  searchResults.splice(i,1);
+  renderSearchResults();
 }
 
 function updateStep2Actions(){
