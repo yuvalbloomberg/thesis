@@ -183,6 +183,8 @@ textarea:focus{border-color:var(--accent)}
 .ebtn-p{background:var(--accent);color:#fff;border:none}.ebtn-p:hover{background:#0f2640}
 .ebtn-s{background:var(--surface);color:var(--accent);border:1px solid var(--accent)}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
 <div class="app">
@@ -204,6 +206,10 @@ textarea:focus{border-color:var(--accent)}
     <div id="evNav"></div>
   </div>
   <div class="sb-footer">
+    <div id="driveStatus" style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px;text-align:center">Google Drive: לא מחובר</div>
+    <button onclick="initDriveAuth()" id="driveConnectBtn">🔗 חיבור ל-Google Drive</button>
+    <button onclick="saveToDrive()" id="driveSaveBtn" style="display:none">☁️ שמור ב-Drive</button>
+    <button onclick="loadFromDrive()" id="driveLoadBtn" style="display:none">📥 טען מ-Drive</button>
     <button onclick="exportJSON()">גיבוי JSON</button>
     <button onclick="exportCSV()">ייצוא CSV</button>
   </div>
