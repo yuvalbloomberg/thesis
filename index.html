@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.1 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9.2 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -337,7 +337,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.1</p>
+    <p>כלי מחקר · יובל בלומברג · v9.2</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -788,7 +788,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.1';
+const APP_VERSION='v9.2';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -2488,11 +2488,13 @@ async function odataAll(entity,filter,select,max){
   return out;
 }
 async function odataIn(entity,field,ids,extra,select,label){
-  const out=[];const tot=Math.ceil(ids.length/40);
-  for(let i=0,b=0;i<ids.length;i+=40,b++){
-    if(label&&tot>2)knStatus(`${label} (${b+1}/${tot})`,true);
-    const f='('+ids.slice(i,i+40).map(id=>`${field} eq ${id}`).join(' or ')+')'+(extra?' and '+extra:'');
-    out.push(...await odataAll(entity,f,select));
+  const out=[];let B=20;
+  for(let i=0;i<ids.length;){
+    if(label&&ids.length>B*2)knStatus(`${label} (${Math.min(i+B,ids.length)}/${ids.length})`,true);
+    const f='('+ids.slice(i,i+B).map(id=>`${field} eq ${id}`).join(' or ')+')'+(extra?' and '+extra:'');
+    try{out.push(...await odataAll(entity,f,select))}
+    catch(e){if(/node count/i.test(e.message)&&B>4){B=Math.max(4,Math.floor(B/2));continue}throw e}
+    i+=B;
   }
   return out;
 }
