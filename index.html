@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v8 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -300,6 +300,33 @@ textarea:focus{border-color:var(--accent)}
 .qres-why{font-size:11px;color:#4b2e83;margin-top:6px}
 .qans{background:#fffaf2;border:1px dashed #d9922b;border-radius:6px;padding:10px 12px;margin-bottom:14px}
 .imp-note.busy::before,#qryStatus.busy::before,#bgsumStatus.busy::before{content:'';display:inline-block;width:9px;height:9px;border:2px solid #c9b8e6;border-top-color:#4b2e83;border-radius:50%;margin-left:6px;vertical-align:-1px;animation:spin .8s linear infinite}
+.kn-groups{display:flex;flex-wrap:wrap;gap:6px 16px}
+.kn-act{background:var(--surface2);padding:3px 8px;border-radius:4px}
+.kn-list{max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.kn-item{display:flex;gap:8px;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.kn-item:last-child{border-bottom:none}
+.kn-ex{border-top:1px solid var(--border);padding:8px 0 4px;margin-top:6px}
+.kn-ex-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;cursor:pointer}
+.kn-ex-text{font-size:13px;line-height:1.75;white-space:pre-wrap;border-right:3px solid #b8c7d6;padding-right:10px;margin-top:5px}
+.kn-ex.whole .kn-ex-text{max-height:180px;overflow-y:auto;color:var(--muted)}
+.kn-errs{font-size:11px;color:var(--muted);margin-bottom:16px}
+.kn-in{font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;font-family:var(--sans)}
+.kn-settings summary{cursor:pointer;font-size:13px;font-weight:600}
+.kn-settings p{margin:8px 0}
+.actor-row{display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.actor-name{font-weight:500;min-width:130px}
+.actor-role{color:var(--muted);font-size:11px}
+.actor-al{color:var(--hint);font-size:11px;flex:1}
+.xr-badge{font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600;white-space:nowrap}
+.xr-badge.both{background:var(--green-bg);color:var(--green)}
+.xr-badge.official{background:var(--accent-light);color:var(--accent)}
+.xr-badge.media{background:#fff1dc;color:#8a4b00}
+.xr-badge.none{background:var(--surface2);color:var(--muted)}
+.xr-shared{font-size:11px;color:var(--green);margin-top:5px}
+.xr-act{white-space:nowrap}
+.xr-act .mini{display:inline-block;margin:2px;text-decoration:none}
+a.mini{color:var(--text)}
+#knStatus.busy::before{content:'';display:inline-block;width:9px;height:9px;border:2px solid #c9b8e6;border-top-color:#4b2e83;border-radius:50%;margin-left:6px;vertical-align:-1px;animation:spin .8s linear infinite}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 <script src="https://accounts.google.com/gsi/client"></script>
@@ -310,7 +337,7 @@ textarea:focus{border-color:var(--accent)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v8</p>
+    <p>כלי מחקר · יובל בלומברג · v9</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -319,6 +346,8 @@ textarea:focus{border-color:var(--accent)}
     <div class="nav-item" onclick="showPage('erosion')" id="nav-erosion"><span class="num">—</span>מפת Erosion</div>
     <div class="nav-item" onclick="showPage('import')" id="nav-import"><span class="num">—</span>ייבוא ציטוטים</div>
     <div class="nav-item" onclick="showPage('query')" id="nav-query"><span class="num">—</span>שאילתות על הציטוטים</div>
+    <div class="nav-item" onclick="showPage('knesset')" id="nav-knesset"><span class="num">—</span>סריקת פרוטוקולי הכנסת</div>
+    <div class="nav-item" onclick="showPage('crossref')" id="nav-crossref"><span class="num">—</span>הצלבה לפי שחקן</div>
     <div class="nav-item" onclick="showPage('export')" id="nav-export"><span class="num">—</span>ייצוא</div>
   </div>
   <div class="nav-section">
@@ -589,6 +618,70 @@ textarea:focus{border-color:var(--accent)}
   </div>
 </div>
 
+<!-- KNESSET SCAN PAGE -->
+<div class="page" id="page-knesset">
+  <div class="content">
+    <div style="font-size:15px;font-weight:600;margin-bottom:12px">סריקת פרוטוקולי הכנסת</div>
+    <div class="exp-card">
+      <h3>1. טווח וזירות</h3>
+      <div class="word-row" style="margin-bottom:10px">
+        <select id="knEvent" onchange="knSetWindow()"></select>
+        <label class="imp-chk">מתאריך <input type="date" id="knFrom"/></label>
+        <label class="imp-chk">עד תאריך <input type="date" id="knTo"/></label>
+      </div>
+      <div id="knGroups" class="kn-groups"></div>
+      <p style="margin:8px 0 0">ברירת המחדל: שלושה חודשים לפני האירוע עד ארבעה חודשים אחריו. רוב ישיבות ועדת החוץ והביטחון חסויות, ולכן יופיעו בעיקר ישיבות פתוחות והמליאה.</p>
+    </div>
+    <div class="exp-card">
+      <h3>2. מה לחפש</h3>
+      <div class="ana-label">דוברים</div>
+      <div id="knActors" class="kn-groups" style="margin-bottom:10px"></div>
+      <div class="ana-label">מילות מפתח (לפחות אחת צריכה להופיע בקטע הדיבור)</div>
+      <textarea id="knKeywords" rows="2" placeholder="חמאס, מנהרות, הרתעה, עזה, שקט, כיפת ברזל"></textarea>
+      <label class="imp-chk" style="margin-top:8px"><input type="checkbox" id="knAI" checked/> חלץ מובאות מדויקות ותייג אותן בעזרת הבינה המלאכותית (מובאה שאינה מופיעה מילה במילה בפרוטוקול נפסלת אוטומטית)</label>
+    </div>
+    <div class="exp-card">
+      <div class="word-row">
+        <button class="ebtn ebtn-p" onclick="knFind()">מצא פרוטוקולים</button>
+        <span class="ai-status" id="knStatus"></span>
+      </div>
+    </div>
+    <div id="knList"></div>
+    <div id="knResults"></div>
+    <details class="exp-card kn-settings"><summary>הגדרות חיבור</summary>
+      <p>הכלי ניגש למאגר הרשמי של הכנסת דרך Worker קטן, כי מהדפדפן אי אפשר להוריד ישירות את קובצי הפרוטוקולים.</p>
+      <div class="word-row"><input id="knProxy" dir="ltr" style="min-width:320px;font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:5px"/><button class="ebtn ebtn-s" onclick="knTest()">בדוק חיבור</button><span class="ai-status" id="knProxyStatus"></span></div>
+    </details>
+  </div>
+</div>
+
+<!-- CROSS-REFERENCE PAGE -->
+<div class="page" id="page-crossref">
+  <div class="content">
+    <div style="font-size:15px;font-weight:600;margin-bottom:12px">הצלבה לפי שחקן</div>
+    <div class="exp-card">
+      <div class="word-row">
+        <select id="xrScope" onchange="renderCrossRef()"></select>
+        <label class="imp-chk"><input type="checkbox" id="xrPend" onchange="renderCrossRef()"/> כולל ציטוטים שהתיוג שלהם ממתין לאישור</label>
+      </div>
+      <p style="margin:8px 0 0">ציטוט משויך לשחקן לפי שדה הדובר. מקורות רשמיים: פרוטוקול, דו"ח ונאום או הצהרה. תקשורת: עיתונות, ראיון ורשת חברתית.</p>
+    </div>
+    <div id="xrOut"></div>
+    <div class="exp-card" style="margin-top:14px">
+      <h3>רשימת השחקנים</h3>
+      <div id="actorList" style="margin-bottom:10px"></div>
+      <div class="word-row">
+        <input id="acName" placeholder="שם מלא" class="kn-in"/>
+        <input id="acRole" placeholder="תפקיד בתקופה" class="kn-in"/>
+        <input id="acAliases" placeholder="כינויים נוספים, מופרדים בפסיקים" class="kn-in" style="min-width:240px"/>
+        <button class="ebtn ebtn-p" onclick="addActor()">הוסף</button>
+        <button class="ebtn ebtn-s" onclick="addActorPreset(9)">הוסף את שחקני המפתח של צוק איתן</button>
+      </div>
+      <p style="margin:8px 0 0">הכינויים משמשים לזיהוי הדובר בפרוטוקולים. שם משפחה נפוץ (למשל כהן) עלול לתפוס דוברים אחרים — העדף שם מלא.</p>
+    </div>
+  </div>
+</div>
+
 <!-- EXPORT PAGE -->
 <div class="page" id="page-export">
   <div class="content">
@@ -695,7 +788,7 @@ textarea:focus{border-color:var(--accent)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v8';
+const APP_VERSION='v9';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -1582,7 +1675,9 @@ function switchInner(tab){
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  ['events','allsources','erosion','import','query','export'].forEach(t=>document.getElementById('nav-'+t).classList.toggle('active',t===name));
+  ['events','allsources','erosion','import','query','knesset','crossref','export'].forEach(t=>document.getElementById('nav-'+t).classList.toggle('active',t===name));
+  if(name==='knesset')buildKnessetPage();
+  if(name==='crossref')buildCrossRefPage();
   if(name==='import')buildImportPage();
   if(name==='query')buildQueryPage();
   if(name==='export')buildExportPage();
@@ -1685,7 +1780,7 @@ async function exportWord(scope){
 
 // ── JSON / CSV ──
 function collectAll(){
-  const out={meta:{version:8,exported:new Date().toISOString()},events:{}};
+  const out={meta:{version:9,exported:new Date().toISOString()},events:{},actors:getActors()};
   EVENTS.forEach(e=>{
     const analysis={};FIELDS.forEach(f=>analysis[f]=getField(e.n,f));
     const erosion={};MCOLS.forEach((m,mi)=>erosion[m]=getEr(e.n,mi));
@@ -1695,6 +1790,7 @@ function collectAll(){
 }
 function applyAll(data){
   if(!data||!data.events)throw new Error('הקובץ אינו גיבוי של הכלי');
+  if(Array.isArray(data.actors))setActors(data.actors);
   Object.keys(data.events).forEach(evn=>{
     const ev=data.events[evn];
     if(ev.analysis)FIELDS.forEach(f=>{if(ev.analysis[f]!==undefined)setField(evn,f,ev.analysis[f])});
@@ -2146,6 +2242,469 @@ ${JSON.stringify(qryResults.map(x=>({ref:x.ref,point:x.point,src:x.src,page:x.pa
 החזר את התשובה בלבד, כטקסט רגיל.`;
   try{const t=(await callClaude(prompt,2000)).trim();box.innerHTML=`<div class="qans"><div class="sugg-lbl">תשובה מבוססת ציטוטים — בדוק מול המקורות לפני שימוש</div><div class="sugg-text">${esc(t)}</div></div>`}
   catch(e){box.innerHTML=`<div class="imp-err">הניסוח נכשל: ${esc(e.message)}</div>`}
+}
+
+// ── LEGACY WORD (.doc) TEXT EXTRACTION — compound file + piece table, no external library ──
+function cfbRead(buf){
+  const dv=new DataView(buf);const u8=new Uint8Array(buf);
+  if(dv.getUint32(0,true)!==0xE011CFD0||dv.getUint32(4,true)!==0xE11AB1A1)throw new Error('הקובץ אינו מסמך וורד ישן תקין');
+  const secSize=1<<dv.getUint16(0x1E,true),miniSize=1<<dv.getUint16(0x20,true);
+  const nFat=dv.getUint32(0x2C,true),dirStart=dv.getUint32(0x30,true),cutoff=dv.getUint32(0x38,true);
+  const miniFatStart=dv.getUint32(0x3C,true),difatStart=dv.getUint32(0x44,true);
+  const secOff=s=>(s+1)*secSize;
+  const difat=[];for(let i=0;i<109;i++){const v=dv.getUint32(0x4C+i*4,true);if(v<0xFFFFFFFA)difat.push(v)}
+  let d=difatStart,guard=0;
+  while(d<0xFFFFFFFA&&guard++<10000){const o=secOff(d);const per=secSize/4-1;for(let i=0;i<per;i++){const v=dv.getUint32(o+i*4,true);if(v<0xFFFFFFFA)difat.push(v)}d=dv.getUint32(o+per*4,true)}
+  const fat=[];difat.slice(0,nFat).forEach(s=>{const o=secOff(s);for(let i=0;i<secSize/4;i++)fat.push(dv.getUint32(o+i*4,true))});
+  const chain=(start,tbl)=>{const out=[];let s=start,g=0;while(s<0xFFFFFFFA&&g++<5000000){out.push(s);s=tbl[s]}return out};
+  const readChain=(start,size)=>{const secs=chain(start,fat);const out=new Uint8Array(secs.length*secSize);secs.forEach((s,i)=>{const o=secOff(s);out.set(u8.subarray(o,Math.min(o+secSize,u8.length)),i*secSize)});return size!=null?out.subarray(0,size):out};
+  const dirBytes=readChain(dirStart);const ddv=new DataView(dirBytes.buffer,dirBytes.byteOffset,dirBytes.byteLength);
+  const entries=[];
+  for(let o=0;o+128<=dirBytes.length;o+=128){
+    const nl=ddv.getUint16(o+0x40,true);let name='';for(let i=0;i<Math.max(0,nl/2-1);i++)name+=String.fromCharCode(ddv.getUint16(o+i*2,true));
+    entries.push({name,type:dirBytes[o+0x42],start:ddv.getUint32(o+0x74,true),size:ddv.getUint32(o+0x78,true)});
+  }
+  const root=entries[0];let mini=null,miniFat=null;
+  const get=name=>{
+    const e=entries.find(x=>x.type===2&&x.name===name);if(!e)return null;
+    if(e.size>=cutoff)return readChain(e.start,e.size);
+    if(!mini){mini=readChain(root.start,root.size);const mf=readChain(miniFatStart);const mdv=new DataView(mf.buffer,mf.byteOffset,mf.byteLength);miniFat=[];for(let i=0;i<mf.length/4;i++)miniFat.push(mdv.getUint32(i*4,true))}
+    const secs=chain(e.start,miniFat);const out=new Uint8Array(secs.length*miniSize);secs.forEach((s,i)=>out.set(mini.subarray(s*miniSize,(s+1)*miniSize),i*miniSize));
+    return out.subarray(0,e.size);
+  };
+  return {get};
+}
+function cleanWordText(t){
+  // fields: \x13 code \x14 result \x15 → keep the result only
+  let out='',depth=0;const stack=[];
+  for(let i=0;i<t.length;i++){
+    const c=t.charCodeAt(i);
+    if(c===0x13){stack.push(true);continue}
+    if(c===0x14){if(stack.length)stack[stack.length-1]=false;continue}
+    if(c===0x15){stack.pop();continue}
+    if(stack.length&&stack[stack.length-1])continue;
+    out+=t[i];
+  }
+  return out.replace(/\r\x07|\x07/g,'\t').replace(/[\r\x0b\x0c]/g,'\n').replace(/[\x00-\x08\x0e-\x1f]/g,'').replace(/ /g,' ');
+}
+function docToText(buf){
+  const cfb=cfbRead(buf);
+  const wd=cfb.get('WordDocument');if(!wd)throw new Error('לא נמצא תוכן במסמך');
+  const dv=new DataView(wd.buffer,wd.byteOffset,wd.byteLength);
+  if(dv.getUint16(0,true)!==0xA5EC)throw new Error('מבנה המסמך אינו מוכר');
+  const nFib=dv.getUint16(2,true);
+  if(nFib<101){ // Word 6/95: single 8-bit stream in the Hebrew code page
+    const fcMin=dv.getUint32(0x18,true),fcMac=dv.getUint32(0x1C,true);
+    return cleanWordText(new TextDecoder('windows-1255').decode(wd.subarray(fcMin,fcMac)));
+  }
+  const tbl=cfb.get((dv.getUint16(0x0A,true)&0x0200)?'1Table':'0Table');if(!tbl)throw new Error('טבלת המסמך חסרה');
+  const ccpText=dv.getUint32(0x4C,true);
+  const fcClx=dv.getUint32(0x1A2,true),lcbClx=dv.getUint32(0x1A6,true);
+  const tdv=new DataView(tbl.buffer,tbl.byteOffset,tbl.byteLength);
+  let p=fcClx;const end=fcClx+lcbClx;
+  while(p<end&&tbl[p]===1){p+=3+tdv.getUint16(p+1,true)}
+  if(tbl[p]!==2)throw new Error('טבלת הקטעים במסמך פגומה');
+  const lcb=tdv.getUint32(p+1,true);const base=p+5;const n=(lcb-4)/12;
+  const u16=new TextDecoder('utf-16le'),c1252=new TextDecoder('windows-1252');
+  let text='';
+  for(let i=0;i<n;i++){
+    const cpS=tdv.getUint32(base+i*4,true),cpE=tdv.getUint32(base+(i+1)*4,true);
+    if(cpS>=ccpText)break;
+    const len=Math.min(cpE,ccpText)-cpS;
+    const fcRaw=tdv.getUint32(base+(n+1)*4+i*8+2,true);
+    if(fcRaw&0x40000000){const fc=(fcRaw&0x3FFFFFFF)/2;text+=c1252.decode(wd.subarray(fc,fc+len))}
+    else text+=u16.decode(wd.subarray(fcRaw,fcRaw+len*2));
+  }
+  return cleanWordText(text);
+}
+
+// ── ACTORS (shared across all stress points) ──
+const SK_ACTORS='pt5_actors';
+const OFFICIAL_T=['DOC','REP','SPE'],MEDIA_T=['NEWS','INT','SOC'];
+const ACTOR_PRESETS={9:[
+  {name:'בנימין נתניהו',role:'ראש הממשלה',aliases:['נתניהו']},
+  {name:'משה יעלון',role:'שר הביטחון',aliases:['יעלון']},
+  {name:'בני גנץ',role:'הרמטכ"ל',aliases:['גנץ']},
+  {name:'אביב כוכבי',role:'ראש אמ"ן',aliases:['כוכבי']},
+  {name:'יורם כהן',role:'ראש השב"כ',aliases:[]},
+  {name:'נפתלי בנט',role:'שר, חבר הקבינט',aliases:['בנט']},
+  {name:'אביגדור ליברמן',role:'שר החוץ, חבר הקבינט',aliases:['ליברמן']},
+  {name:'יאיר לפיד',role:'שר האוצר, חבר הקבינט',aliases:['לפיד']},
+  {name:'ציפי לבני',role:'שרת המשפטים, חברת הקבינט',aliases:['לבני']},
+  {name:'יובל שטייניץ',role:'שר, חבר הקבינט',aliases:['שטייניץ']},
+  {name:'גלעד ארדן',role:'שר, חבר הקבינט',aliases:['ארדן']}
+]};
+function normHe(s){return String(s||'').replace(/[״”“"]/g,'"').replace(/[׳’‘']/g,"'").replace(/[֑-ׇ]/g,'').replace(/\s+/g,' ').trim()}
+function getActors(){try{const a=JSON.parse(localStorage.getItem(SK_ACTORS)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function setActors(a){localStorage.setItem(SK_ACTORS,JSON.stringify(a))}
+function actorNames(a){return [a.name,...(a.aliases||[])].map(normHe).filter(x=>x.length>1)}
+function matchActor(speaker,actors){
+  const s=normHe(speaker);if(!s)return null;
+  actors=actors||getActors();
+  return actors.find(a=>actorNames(a).some(n=>s.includes(n)))||null;
+}
+function quoteActor(q,actors){return (q.actor&&(actors||getActors()).find(a=>a.id===q.actor))||matchActor(q.speaker,actors)}
+function addActor(){
+  const name=document.getElementById('acName').value.trim();if(!name){alert('יש להזין שם');return}
+  const role=document.getElementById('acRole').value.trim();
+  const aliases=document.getElementById('acAliases').value.split(/[,،]/).map(x=>x.trim()).filter(Boolean);
+  const a=getActors();
+  if(a.some(x=>normHe(x.name)===normHe(name))){alert('השחקן כבר קיים ברשימה');return}
+  a.push({id:'A'+Date.now().toString(36),name,role,aliases});setActors(a);
+  ['acName','acRole','acAliases'].forEach(id=>document.getElementById(id).value='');
+  renderActors();renderCrossRef();
+}
+function editActor(id){
+  const a=getActors();const x=a.find(y=>y.id===id);if(!x)return;
+  const name=prompt('שם',x.name);if(name==null)return;
+  const role=prompt('תפקיד',x.role||'');if(role==null)return;
+  const al=prompt('כינויים נוספים לזיהוי בפרוטוקולים, מופרדים בפסיקים',(x.aliases||[]).join(', '));if(al==null)return;
+  x.name=name.trim()||x.name;x.role=role.trim();x.aliases=al.split(/[,،]/).map(s=>s.trim()).filter(Boolean);
+  setActors(a);renderActors();renderCrossRef();
+}
+function deleteActor(id){
+  if(!confirm('למחוק את השחקן מהרשימה? הציטוטים עצמם לא יימחקו.'))return;
+  setActors(getActors().filter(a=>a.id!==id));renderActors();renderCrossRef();
+}
+function addActorPreset(evn){
+  const p=ACTOR_PRESETS[evn];if(!p)return;
+  const a=getActors();let n=0;
+  p.forEach(x=>{if(!a.some(y=>normHe(y.name)===normHe(x.name))){a.push(Object.assign({id:'A'+Date.now().toString(36)+n},x));n++}});
+  setActors(a);renderActors();renderCrossRef();
+  alert(n?`נוספו ${n} שחקנים. בדוק את התפקידים והכינויים ועדכן לפי הצורך.`:'כל השחקנים כבר ברשימה.');
+}
+function addActorFromSpeaker(name){
+  const a=getActors();if(a.some(x=>normHe(x.name)===normHe(name)))return;
+  a.push({id:'A'+Date.now().toString(36),name,role:'',aliases:[]});setActors(a);renderActors();renderCrossRef();
+}
+function renderActors(){
+  const el=document.getElementById('actorList');if(!el)return;
+  const a=getActors();
+  el.innerHTML=a.length?a.map(x=>`<div class="actor-row"><span class="actor-name">${esc(x.name)}</span><span class="actor-role">${esc(x.role||'')}</span><span class="actor-al">${(x.aliases||[]).length?'כינויים: '+esc(x.aliases.join(', ')):''}</span><button class="icon-btn" onclick="editActor('${x.id}')" title="עריכה">✎</button><button class="icon-btn danger" onclick="deleteActor('${x.id}')" title="מחיקה">×</button></div>`).join(''):'<div class="empty-q">אין עדיין שחקנים ברשימה.</div>';
+  const sel=document.getElementById('knActors');
+  if(sel){const prev=new Set([...sel.querySelectorAll('input:checked')].map(i=>i.value));sel.innerHTML=a.length?a.map(x=>`<label class="imp-chk kn-act"><input type="checkbox" value="${x.id}" ${prev.has(x.id)?'checked':''}/> ${esc(x.name)}</label>`).join(''):'<span class="imp-note">הוסף שחקנים בדף "הצלבה לפי שחקן" כדי לסנן לפי דוברים.</span>'}
+}
+
+// ── CROSS-REFERENCE BY ACTOR: official vs media ──
+function srcKind(t){return OFFICIAL_T.includes(t)?'official':MEDIA_T.includes(t)?'media':'other'}
+function buildCrossRefPage(){
+  const s=document.getElementById('xrScope');
+  if(s&&!s.options.length){s.innerHTML='<option value="">כל הנקודות</option>'+EVENTS.map(e=>`<option value="${e.n}">${evTitle(e)}</option>`).join('');s.value=String(EVENTS[cur].n)}
+  renderActors();renderCrossRef();
+}
+function xrChips(list){return list.map(x=>`<span class="src-chip" title="${esc(x.src)}" onclick="goToSource(${x.evn},'${x.id}',${x.qi})">${esc(x.id)} · ${x.qi+1}</span>`).join('')}
+function renderCrossRef(){
+  const el=document.getElementById('xrOut');if(!el)return;
+  const scope=document.getElementById('xrScope').value,incP=document.getElementById('xrPend').checked;
+  const actors=getActors();const rows={};actors.forEach(a=>rows[a.id]={a,official:[],media:[],other:[]});
+  const unknown={};
+  EVENTS.forEach(e=>{
+    if(scope&&String(e.n)!==scope)return;
+    getSources(e.n).forEach(s=>s.quotes.forEach((q,qi)=>{
+      if(!q.text.trim()||(!incP&&q.status==='pending'))return;
+      const a=quoteActor(q,actors);
+      if(!a){const sp=q.speaker.trim();if(sp)unknown[sp]=(unknown[sp]||0)+1;return}
+      rows[a.id][srcKind(s.t)].push({evn:e.n,id:s.id,qi,src:s.txt,q});
+    }));
+  });
+  const tagSet=list=>{const t=new Set();list.forEach(x=>{x.q.fields.filter(f=>/^h\d$/.test(f)).forEach(f=>t.add(f));x.q.ms.forEach(m=>t.add(m))});return t};
+  const tagLbl=t=>/^h\d$/.test(t)?t.toUpperCase():MNAMES[t];
+  let nBoth=0;
+  const html=Object.values(rows).map(r=>{
+    const o=r.official.length,m=r.media.length;
+    const st=o&&m?'both':o?'official':m?'media':'none';if(st==='both')nBoth++;
+    const to=tagSet(r.official),tm=tagSet(r.media);const shared=[...to].filter(t=>tm.has(t));
+    const stLbl={both:'מוצלב — רשמי ותקשורת',official:'רשמי בלבד',media:'תקשורת בלבד',none:'אין ציטוטים'}[st];
+    const e=scope?evByN(scope):null;const w=e&&!e.bg?eventWindow(e.n):null;
+    const gq=encodeURIComponent(`"${r.a.name}"`+(e&&!e.bg?' '+e.name.replace(/^מבצע\s+/,''):''));
+    const gd=w?`&tbs=cdr:1,cd_min:${fmtUS(w[0])},cd_max:${fmtUS(w[1])}`:'';
+    return `<tr class="xr-${st}">
+      <td class="row-lbl"><div>${esc(r.a.name)}</div><div class="actor-role">${esc(r.a.role||'')}</div></td>
+      <td><div class="ind-n">${o||'—'}</div><div class="linked-srcs">${xrChips(r.official)}</div></td>
+      <td><div class="ind-n">${m||'—'}</div><div class="linked-srcs">${xrChips(r.media)}</div></td>
+      <td><span class="xr-badge ${st}">${stLbl}</span>${shared.length?`<div class="xr-shared">אותו תיוג בשני הסוגים: ${shared.map(tagLbl).join(', ')}</div>`:''}${r.other.length?`<div class="imp-note">${r.other.length} ציטוטים ממקורות אקדמיים או אחרים</div>`:''}</td>
+      <td class="xr-act">${!o?`<button class="mini" onclick="knFromActor('${r.a.id}')">סרוק בכנסת</button>`:''}${!m?`<a class="mini" target="_blank" rel="noopener" href="https://www.google.com/search?q=${gq}${gd}">חפש בתקשורת ↗</a>`:''}</td>
+    </tr>`;
+  }).join('');
+  const unk=Object.entries(unknown).sort((a,b)=>b[1]-a[1]).slice(0,30);
+  el.innerHTML=(actors.length?`<div class="imp-sum">${actors.length} שחקנים · ${nBoth} מוצלבים בין מקורות רשמיים לתקשורת</div>
+    <div class="imp-tblwrap"><table class="indtbl xrtbl"><thead><tr><th>שחקן</th><th>מקורות רשמיים — פרוטוקול, דו"ח, נאום</th><th>תקשורת — עיתונות, ראיון, רשת חברתית</th><th>מצב ההצלבה</th><th></th></tr></thead><tbody>${html}</tbody></table></div>`:'<div class="empty-src">הוסף שחקנים כדי לראות את ההצלבה.</div>')
+    +(unk.length?`<div class="exp-card" style="margin-top:14px"><h3>דוברים בציטוטים שאינם ברשימה</h3><div class="linked-srcs">${unk.map(([n,c])=>`<button class="mini" onclick="addActorFromSpeaker(${esc(JSON.stringify(n))})" title="הוסף כשחקן">${esc(n)} · ${c} ＋</button>`).join('')}</div></div>`:'');
+}
+function fmtUS(d){const [y,m,dd]=d.split('-');return `${+m}/${+dd}/${y}`}
+
+// ── KNESSET PROTOCOL SCAN (official Knesset OData V4 through a small proxy worker) ──
+const ODATA='https://knesset.gov.il/OdataV4/ParliamentInfo';
+const KPROXY_DEFAULT='https://knesset-proxy.yuvalbloomberg.workers.dev';
+const EVENT_ANCHOR={1:['1993-09-13','1996-03-04'],2:['2000-07-11','2000-10-31'],3:['2002-03-29','2002-05-10'],4:['2005-08-15','2005-09-12'],5:['2007-06-10','2007-06-15'],6:['2009-01-20','2009-06-04'],7:['2011-10-11','2011-10-18'],8:['2012-11-14','2012-11-21'],9:['2014-07-08','2014-08-26'],10:['2018-03-30','2018-11-13'],11:['2021-05-10','2021-05-21'],12:['2022-08-05','2023-05-13']};
+const KGROUPS=[
+  {k:'fadc',l:'ועדת החוץ והביטחון, ועדות המשנה והמשותפות שלה',re:/החוץ והביטחון|ביטחון, יחסי חוץ|לעניינים חסויים.*ביטחוני/},
+  {k:'control',l:'הוועדה לענייני ביקורת המדינה',re:/ביקורת המדינה/},
+  {k:'finance',l:'ועדת הכספים',re:/^ועדת הכספים$/},
+  {k:'all',l:'כל הוועדות',re:/./}
+];
+let knList=[],knCands=[],knAbort=false,knRunning=false;
+const knTextCache=new Map();
+function kproxy(){try{return (localStorage.getItem('thesis_knesset_proxy')||KPROXY_DEFAULT).replace(/\/+$/,'')}catch(e){return KPROXY_DEFAULT}}
+function saveKProxy(v){try{localStorage.setItem('thesis_knesset_proxy',v.trim())}catch(e){}}
+function addDays(d,n){const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}
+function eventWindow(evn){const a=EVENT_ANCHOR[evn];return a?[addDays(a[0],-90),addDays(a[1],120)]:null}
+function phaseFor(evn,date){const a=EVENT_ANCHOR[evn];if(!a||!date)return 'during';return date<a[0]?'before':date>a[1]?'after':'during'}
+async function kGet(url,asBuf){
+  const r=await fetch(kproxy()+'/?u='+encodeURIComponent(url));
+  if(!r.ok)throw new Error(`שגיאה ${r.status} בגישה ל${/fs\.knesset/.test(url)?'קובץ הפרוטוקול':'מאגר הכנסת'}`);
+  return asBuf?r.arrayBuffer():r.json();
+}
+async function odataAll(entity,filter,select,max){
+  const out=[];let skip=0;max=max||5000;
+  while(out.length<max){
+    if(knAbort)throw new Error('הסריקה הופסקה');
+    const q=`${ODATA}/${entity}?$filter=${encodeURIComponent(filter)}${select?'&$select='+select:''}&$top=100&$skip=${skip}`;
+    const d=await kGet(q);const v=d.value||[];out.push(...v);
+    if(v.length<100)break;skip+=100;
+  }
+  return out;
+}
+async function odataIn(entity,field,ids,extra,select){
+  const out=[];
+  for(let i=0;i<ids.length;i+=20){
+    const f='('+ids.slice(i,i+20).map(id=>`${field} eq ${id}`).join(' or ')+')'+(extra?' and '+extra:'');
+    out.push(...await odataAll(entity,f,select));
+  }
+  return out;
+}
+function buildKnessetPage(){
+  const s=document.getElementById('knEvent');
+  if(s&&!s.options.length){s.innerHTML=STRESS.map(e=>`<option value="${e.n}">${evTitle(e)}</option>`).join('');s.value=String(EVENTS[cur].bg?9:EVENTS[cur].n);knSetWindow()}
+  const g=document.getElementById('knGroups');
+  if(g&&!g.children.length)g.innerHTML=KGROUPS.map(x=>`<label class="imp-chk"><input type="checkbox" value="${x.k}" ${x.k==='fadc'||x.k==='control'?'checked':''}/> ${x.l}</label>`).join('')+`<label class="imp-chk"><input type="checkbox" id="knPlenum" checked/> מליאת הכנסת</label>`;
+  const p=document.getElementById('knProxy');if(p&&!p.value)p.value=kproxy();
+  renderActors();
+}
+function knSetWindow(){const w=eventWindow(Number(document.getElementById('knEvent').value));if(w){document.getElementById('knFrom').value=w[0];document.getElementById('knTo').value=w[1]}}
+function knFromActor(id){
+  showPage('knesset');
+  const sc=document.getElementById('xrScope');const ev=sc&&sc.value&&!evByN(sc.value).bg?sc.value:null;
+  if(ev){document.getElementById('knEvent').value=ev;knSetWindow()}
+  document.querySelectorAll('#knActors input').forEach(i=>i.checked=i.value===id);
+}
+async function knTest(){
+  const st=document.getElementById('knProxyStatus');saveKProxy(document.getElementById('knProxy').value);
+  st.textContent='בודק...';
+  try{const d=await kGet(`${ODATA}/KNS_Committee?$top=1`);st.textContent=d&&d.value?'✓ החיבור למאגר הכנסת תקין':'התקבלה תשובה לא צפויה'}
+  catch(e){st.textContent='✗ '+e.message+' — בדוק שה-Worker פרוס ושהכתובת נכונה'}
+}
+function knStatus(msg,busy){const el=document.getElementById('knStatus');el.textContent=msg;el.classList.toggle('busy',!!busy)}
+function knStop(){knAbort=true}
+const dPart=s=>String(s||'').slice(0,10);
+async function knFind(){
+  if(knRunning)return;knRunning=true;knAbort=false;
+  saveKProxy(document.getElementById('knProxy').value);
+  const from=document.getElementById('knFrom').value,to=document.getElementById('knTo').value;
+  if(!from||!to||from>to){alert('טווח התאריכים אינו תקין');knRunning=false;return}
+  const groups=[...document.querySelectorAll('#knGroups input[value]:checked')].map(i=>KGROUPS.find(g=>g.k===i.value));
+  const plenum=document.getElementById('knPlenum').checked;
+  if(!groups.length&&!plenum){alert('בחר לפחות ועדה אחת או את המליאה');knRunning=false;return}
+  const df=`StartDate ge ${from}T00:00:00Z and StartDate le ${to}T23:59:59Z`;
+  document.getElementById('knResults').innerHTML='';document.getElementById('knList').innerHTML='';knCands=[];
+  const list=[];
+  try{
+    if(groups.length){
+      knStatus('מחפש ישיבות ועדה בטווח התאריכים...',true);
+      const ses=(await odataAll('KNS_CommitteeSession',df,'Id,CommitteeID,StartDate,TypeDesc,StatusDesc,SessionUrl')).filter(s=>s.StatusDesc!=='מבוטלת');
+      const cids=[...new Set(ses.map(s=>s.CommitteeID))];
+      knStatus(`נמצאו ${ses.length} ישיבות; מזהה ועדות...`,true);
+      const coms=await odataIn('KNS_Committee','Id',cids,null,'Id,Name');
+      const cname={};coms.forEach(c=>cname[c.Id]=c.Name);
+      const all=groups.some(g=>g.k==='all');
+      const keep=ses.filter(s=>all||groups.some(g=>g.re.test(cname[s.CommitteeID]||'')));
+      knStatus(`${keep.length} ישיבות בוועדות שנבחרו; מאתר קובצי פרוטוקול...`,true);
+      const docs=await odataIn('KNS_DocumentCommitteeSession','CommitteeSessionID',keep.map(s=>s.Id),'GroupTypeID eq 23','CommitteeSessionID,ApplicationDesc,FilePath');
+      keep.forEach(s=>{
+        const d=pickDoc(docs.filter(x=>x.CommitteeSessionID===s.Id));
+        list.push({kind:'committee',sid:s.Id,date:dPart(s.StartDate),name:cname[s.CommitteeID]||'ועדה',secret:s.TypeDesc==='חסויה',file:d&&d.FilePath,ext:d&&d.ApplicationDesc,sessionUrl:s.SessionUrl||''});
+      });
+    }
+    if(plenum){
+      knStatus('מחפש ישיבות מליאה...',true);
+      const ps=await odataAll('KNS_PlenumSession',df,'Id,StartDate,Name');
+      const docs=await odataIn('KNS_DocumentPlenumSession','PlenumSessionID',ps.map(s=>s.Id),null,'PlenumSessionID,GroupTypeDesc,ApplicationDesc,FilePath');
+      ps.forEach(s=>{
+        const mine=docs.filter(x=>x.PlenumSessionID===s.Id);
+        const pref=mine.filter(x=>/דברי הכנסת/.test(x.GroupTypeDesc||''));
+        const d=pickDoc(pref.length?pref:mine);
+        list.push({kind:'plenum',sid:s.Id,date:dPart(s.StartDate),name:'מליאת הכנסת',secret:false,file:d&&d.FilePath,ext:d&&d.ApplicationDesc,sessionUrl:''});
+      });
+    }
+  }catch(e){knStatus('החיפוש נכשל: '+e.message);knRunning=false;return}
+  list.sort((a,b)=>a.date.localeCompare(b.date));
+  knList=list.filter(x=>x.file);
+  const noFile=list.filter(x=>!x.file);
+  const nSecret=noFile.filter(x=>x.secret).length;
+  knStatus(`נמצאו ${knList.length} פרוטוקולים זמינים${noFile.length?` · ${noFile.length} ישיבות ללא פרוטוקול פתוח${nSecret?` (${nSecret} מהן חסויות)`:''}`:''}`);
+  renderKnList();knRunning=false;
+}
+function pickDoc(docs){
+  const rank={DOCX:0,DOC:1,PDF:2};
+  return docs.filter(d=>rank[d.ApplicationDesc]!=null).sort((a,b)=>rank[a.ApplicationDesc]-rank[b.ApplicationDesc])[0]||null;
+}
+function renderKnList(){
+  const el=document.getElementById('knList');
+  if(!knList.length){el.innerHTML='';return}
+  const lim=knList.length>40;
+  el.innerHTML=`<div class="exp-card"><h3>פרוטוקולים לסריקה</h3>
+    <div class="word-row" style="margin-bottom:8px"><button class="mini" onclick="knSelAll(true)">בחר הכל</button><button class="mini" onclick="knSelAll(false)">נקה בחירה</button><span class="imp-note" id="knSelCount"></span></div>
+    <div class="kn-list">${knList.map((x,i)=>`<label class="kn-item"><input type="checkbox" data-i="${i}" ${!lim||i<40?'checked':''} onchange="knCount()"/><span class="phase-b">${x.date.split('-').reverse().join('/')}</span><span>${esc(x.name)}</span><span class="phase-b">${phaseFor(Number(document.getElementById('knEvent').value),x.date)==='before'?'לפני':phaseFor(Number(document.getElementById('knEvent').value),x.date)==='after'?'אחרי':'תוך כדי'}</span><span class="imp-note">${x.ext}</span></label>`).join('')}</div>
+    ${lim?'<p class="imp-warn">נבחרו אוטומטית 40 הראשונים. כל פרוטוקול נוסף מאריך את הסריקה ומייקר את שלב הבינה המלאכותית.</p>':''}
+    <div class="imp-actions" style="margin-bottom:0"><button class="ebtn ebtn-p" onclick="knScan()">סרוק את הפרוטוקולים שנבחרו</button><button class="ebtn ebtn-s" onclick="knStop()">עצור</button></div></div>`;
+  knCount();
+}
+function knSelAll(v){document.querySelectorAll('#knList input[data-i]').forEach(i=>i.checked=v);knCount()}
+function knCount(){const n=document.querySelectorAll('#knList input[data-i]:checked').length;const el=document.getElementById('knSelCount');if(el)el.textContent=`${n} נבחרו`}
+
+async function protocolText(p){
+  if(knTextCache.has(p.file))return knTextCache.get(p.file);
+  const buf=await kGet(p.file,true);let t='';
+  if(p.ext==='DOC')t=docToText(buf);
+  else if(p.ext==='DOCX'){const M=await loadMammoth();t=(await M.extractRawText({arrayBuffer:buf})).value}
+  else if(p.ext==='PDF')t=await pdfToText(buf);
+  knTextCache.set(p.file,t);return t;
+}
+async function pdfToText(buf){
+  if(!window.pdfjsLib){
+    await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';sc.onload=res;sc.onerror=()=>rej(new Error('לא ניתן לטעון את רכיב קריאת ה-PDF'));document.head.appendChild(sc)});
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;let out='';
+  for(let i=1;i<=pdf.numPages;i++){const c=await (await pdf.getPage(i)).getTextContent();let line='',lastY=null;c.items.forEach(it=>{const y=it.transform[5];if(lastY!=null&&Math.abs(y-lastY)>2){out+=line+'\n';line=''}line+=it.str;lastY=y});out+=line+'\n'}
+  return out;
+}
+// split a protocol into speaker turns: a speaker line is short and ends with a colon
+function splitTurns(text){
+  const lines=String(text).split(/\n/).map(l=>l.replace(/<<\s*[^>]*>>/g,'').replace(/\s+/g,' ').trim());
+  const turns=[];let curT=null;
+  const isSpeaker=l=>l.length>=3&&l.length<=90&&/:$/.test(l)&&!/[.?!;]/.test(l.slice(0,-1))&&!/^(סדר היום|נכחו|חברי הוועדה|מוזמנים|ייעוץ משפטי|מנהל(ת)? הוועדה|רישום פרלמנטרי|רשמ(ה|ו|ת)|קצרנית|הנושא|על סדר היום)/.test(l);
+  lines.forEach(l=>{
+    if(!l)return;
+    if(isSpeaker(l)){if(curT&&curT.lines.length)turns.push(curT);curT={speaker:l.slice(0,-1).trim(),lines:[]};return}
+    if(curT)curT.lines.push(l);
+  });
+  if(curT&&curT.lines.length)turns.push(curT);
+  return turns.map(t=>({speaker:t.speaker,text:t.lines.join('\n')}));
+}
+function knKeywords(){return document.getElementById('knKeywords').value.split(/[,،\n]/).map(x=>normHe(x)).filter(Boolean)}
+async function knScan(){
+  if(knRunning)return;
+  const sel=[...document.querySelectorAll('#knList input[data-i]:checked')].map(i=>knList[+i.dataset.i]);
+  if(!sel.length){alert('לא נבחרו פרוטוקולים');return}
+  const actorIds=[...document.querySelectorAll('#knActors input:checked')].map(i=>i.value);
+  const actors=getActors().filter(a=>actorIds.includes(a.id));
+  const kws=knKeywords();
+  if(!actors.length&&!kws.length){alert('בחר לפחות שחקן אחד או הזן מילות מפתח — אחרת כל הפרוטוקול ייחשב רלוונטי');return}
+  const useAI=document.getElementById('knAI').checked;
+  const evn=Number(document.getElementById('knEvent').value);
+  knRunning=true;knAbort=false;knCands=[];
+  let done=0,failed=0,turnsSeen=0;const errs=[];
+  const queue=[...sel];
+  const worker=async()=>{
+    while(queue.length&&!knAbort){
+      const p=queue.shift();
+      try{
+        const t=await protocolText(p);
+        const turns=splitTurns(t);turnsSeen+=turns.length;
+        turns.forEach((tu,ti)=>{
+          const a=actors.length?matchActor(tu.speaker,actors):null;
+          if(actors.length&&!a)return;
+          const nt=normHe(tu.text);
+          const hits=kws.filter(k=>nt.includes(k));
+          if(kws.length&&!hits.length)return;
+          knCands.push({p,ti,speaker:tu.speaker,actor:a?a.id:'',actorName:a?a.name:'',turn:tu.text,hits,excerpts:[{text:tu.text,whole:true,sel:!useAI}]});
+        });
+      }catch(e){failed++;errs.push(`${p.date} ${p.name}: ${e.message}`)}
+      done++;knStatus(`סורק פרוטוקולים: ${done} מתוך ${sel.length} · ${knCands.length} קטעי דיבור מתאימים`,true);
+    }
+  };
+  await Promise.all([worker(),worker(),worker()]);
+  if(useAI&&knCands.length&&!knAbort)await knAI(evn);
+  knRunning=false;
+  knStatus(`${knAbort?'הסריקה הופסקה · ':''}נסרקו ${done-failed} פרוטוקולים (${turnsSeen} קטעי דיבור) · ${knCands.length} קטעים מתאימים${failed?` · ${failed} פרוטוקולים נכשלו`:''}`);
+  if(errs.length)console.warn(errs.join('\n'));
+  renderKnResults(evn,errs);
+}
+async function knAI(evn){
+  const e=evByN(evn);
+  const batches=[];let curB=[],len=0;
+  knCands.forEach((c,i)=>{const l=c.turn.length;if(len+l>14000&&curB.length){batches.push(curB);curB=[];len=0}curB.push(i);len+=l});
+  if(curB.length)batches.push(curB);
+  let rejected=0;const seenByFile=new Map();
+  for(let b=0;b<batches.length&&!knAbort;b++){
+    knStatus(`מחלץ מובאות ומתייג: קבוצה ${b+1} מתוך ${batches.length}...`,true);
+    const items=batches[b].map(i=>({i,date:knCands[i].p.date,forum:knCands[i].p.name,speaker:knCands[i].speaker,text:knCands[i].turn}));
+    const prompt=`${THESIS_CONTEXT}
+
+נקודת שבר: ${e.name} (${e.year})
+
+להלן קטעי דיבור מתוך פרוטוקולים של הכנסת. לכל קטע (i), חלץ עד 3 מובאות שרלוונטיות לתזה: אמירות שמבטאות עמוד תווך של הפרדיגמה, אותות אזהרה ואופן הטיפול בהם, תיוג מבקרים, העדפת פתרונות הגנתיים-טכנולוגיים, או אמירות על לקחים ולמידה.
+חובה: כל מובאה היא העתקה מילה במילה של רצף רציף מתוך הקטע — בלי לקצר, בלי לתקן ובלי להשמיט אף מילה — באורך משפט אחד עד חמישה משפטים. אם אין בקטע דבר רלוונטי, החזר עבורו רשימה ריקה.
+לכל מובאה תייג לפי ההגדרות שלמעלה: fields, dir, ms, proof, ind, lrn, bg, ומשפט reason בעברית.
+
+הקטעים:
+${JSON.stringify(items)}
+
+החזר JSON תקני בלבד, בלי טקסט נוסף ובלי סימוני קוד:
+{"turns":[{"i":0,"excerpts":[{"text":"...","fields":["h1"],"dir":"confirm","ms":["K4"],"proof":"none","ind":{"adv":"tac","res":"","goal":""},"lrn":"","bg":false,"reason":"..."}]}]}`;
+    try{
+      const r=parseJSON(await callClaude(prompt,4000));
+      (r.turns||[]).forEach(t=>{
+        const c=knCands[t.i];if(!c||!batches[b].includes(t.i))return;
+        const hay=normHe(c.turn);const ex=[];
+        const seen=seenByFile.get(c.p.file)||new Set();seenByFile.set(c.p.file,seen);
+        (t.excerpts||[]).forEach(x=>{
+          const txt=String(x.text||'').trim();
+          if(!txt||!hay.includes(normHe(txt))){rejected++;return}
+          if(seen.has(normHe(txt)))return;seen.add(normHe(txt));
+          ex.push({text:txt,tags:x,sel:true});
+        });
+        c.excerpts=ex;c.ai=true;
+      });
+    }catch(err){console.error(err)}
+  }
+  knCands.forEach(c=>{if(!c.ai)c.excerpts=[{text:c.turn,whole:true,sel:false}]});
+  knCands._rejected=rejected;
+}
+function renderKnResults(evn,errs){
+  const el=document.getElementById('knResults');
+  const groups=new Map();knCands.forEach((c,ci)=>{if(!c.excerpts.length)return;const k=c.p.file;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(ci)});
+  const nEx=knCands.reduce((s,c)=>s+c.excerpts.length,0);
+  const tagLine=t=>{if(!t)return '';const q=emptyQuote();applyAiTags(q,t);return qTagText(q)};
+  el.innerHTML=(nEx?`<div class="imp-sum">${nEx} מובאות מ-${groups.size} פרוטוקולים${knCands._rejected?` · ${knCands._rejected} מובאות שהבינה המלאכותית הציעה נפסלו כי אינן מופיעות מילה במילה בפרוטוקול`:''}</div>`:'<div class="empty-src">לא נמצאו קטעים מתאימים. נסה להרחיב את מילות המפתח, את הטווח או את רשימת השחקנים.</div>')
+  +[...groups.entries()].map(([file,cis])=>{
+    const p=knCands[cis[0]].p;const ph=phaseFor(evn,p.date);
+    return `<div class="imp-art"><div class="imp-art-h"><span class="imp-art-name">${esc(p.name)} — ${p.date.split('-').reverse().join('/')}</span><span class="phase-b">${PLABEL[ph]}</span><a class="mini" href="${esc(file)}" target="_blank" rel="noopener">הפרוטוקול המלא ↗</a></div>
+      ${cis.map(ci=>{const c=knCands[ci];return c.excerpts.map((x,xi)=>`<div class="kn-ex${x.whole?' whole':''}"><label class="kn-ex-h"><input type="checkbox" ${x.sel?'checked':''} onchange="knCands[${ci}].excerpts[${xi}].sel=this.checked"/><strong>${esc(c.speaker)}</strong>${c.actorName?`<span class="phase-b">${esc(c.actorName)}</span>`:''}${c.hits.length?`<span class="imp-note">מילות מפתח: ${esc(c.hits.join(', '))}</span>`:''}${x.whole?'<span class="imp-note">קטע הדיבור המלא — אפשר לקצר אחרי הייבוא</span>':''}</label><div class="kn-ex-text">${esc(x.text)}</div>${x.tags?`<div class="qres-why">${esc(tagLine(x.tags))}${x.tags.reason?' — '+esc(x.tags.reason):''}</div>`:''}</div>`).join('')}).join('')}
+    </div>`}).join('')
+  +(nEx?`<div class="imp-actions"><button class="ebtn ebtn-p" onclick="knImport(${evn})">ייבא את המובאות שנבחרו</button><span class="imp-note">כל פרוטוקול נכנס כמקור מסוג פרוטוקול. תיוג שהוצע נכנס כ"ממתין לאישור".</span></div>`:'')
+  +(errs&&errs.length?`<details class="kn-errs"><summary>${errs.length} פרוטוקולים לא נקראו</summary>${errs.map(x=>`<div>${esc(x)}</div>`).join('')}</details>`:'');
+}
+function knImport(evn){
+  const e=evByN(evn);let added=0,skipped=0,newSrc=0;
+  const byFile=new Map();
+  knCands.forEach(c=>c.excerpts.forEach(x=>{if(x.sel){if(!byFile.has(c.p.file))byFile.set(c.p.file,[]);byFile.get(c.p.file).push({c,x})}}));
+  if(!byFile.size){alert('לא נבחרו מובאות');return}
+  byFile.forEach((items,file)=>{
+    const srcs=getSources(evn);const p=items[0].c.p;
+    let s=srcs.find(x=>x.url&&normUrl(x.url)===normUrl(file));
+    if(!s){s=normSource({id:genId(e.code,'DOC',evn),t:'DOC',phase:phaseFor(evn,p.date),proof:'none',analysisField:'',txt:`${p.name} — פרוטוקול ישיבה מ-${p.date.split('-').reverse().join('/')}`,url:file,citedUrl:p.sessionUrl||'',pubDate:p.date,konzept:[],ana:{},quotes:[],ts:Date.now()});srcs.push(s);newSrc++}
+    items.forEach(({c,x})=>{
+      if(s.quotes.some(q=>normHe(q.text)===normHe(x.text))){skipped++;return}
+      const q=Object.assign(emptyQuote(),{title:`ציטוט ${s.quotes.length+1} — ${c.speaker}`,text:x.text,speaker:c.speaker,eventDate:p.date,actor:c.actor});
+      if(x.tags){applyAiTags(q,x.tags);q.status='pending'}
+      s.quotes.push(q);added++;
+    });
+    setSources(evn,srcs);
+  });
+  buildNav();
+  document.getElementById('knResults').insertAdjacentHTML('afterbegin',`<div class="imp-ok">יובאו ${added} מובאות ל${esc(e.name)} (${newSrc} פרוטוקולים חדשים כמקורות)${skipped?`; ${skipped} כפולות דולגו`:''}. <button class="mini" onclick="showPage('events');switchEvent(${EVENTS.findIndex(x=>x.n===evn)});switchInner('sources')">פתח את המקורות</button></div>`);
 }
 
 // ── INIT ──
