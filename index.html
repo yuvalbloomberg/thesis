@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.3 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9.4 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -337,7 +337,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.3</p>
+    <p>כלי מחקר · יובל בלומברג · v9.4</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -788,7 +788,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.3';
+const APP_VERSION='v9.4';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -2449,6 +2449,7 @@ function knDelEx(ci,xi){knCands[ci].excerpts.splice(xi,1);renderKnResults(knEvn,
 function knDelFile(file){if(!confirm('להסיר את כל המובאות מהפרוטוקול הזה מהרשימה?'))return;knCands.forEach(c=>{if(c.p.file===file)c.excerpts=[]});renderKnResults(knEvn,knErrs)}
 function knSelEx(v){knCands.forEach(c=>c.excerpts.forEach(x=>x.sel=v));renderKnResults(knEvn,knErrs)}
 const knTextCache=new Map();
+const knDone=new Set();
 function normProxy(v){
   let s=String(v||'').trim();
   if(!s)return KPROXY_DEFAULT;
@@ -2581,14 +2582,33 @@ function renderKnList(){
   const el=document.getElementById('knList');
   if(!knList.length){el.innerHTML='';return}
   const lim=knList.length>40;
+  const nDone=knList.filter(x=>knDone.has(x.file)).length;
+  let auto=0;const isAuto=x=>{if(knDone.has(x.file)||auto>=40)return false;auto++;return true};
+  const evNum=Number(document.getElementById('knEvent').value);
   el.innerHTML=`<div class="exp-card"><h3>פרוטוקולים לסריקה</h3>
-    <div class="word-row" style="margin-bottom:8px"><button class="mini" onclick="knSelAll(true)">בחר הכל</button><button class="mini" onclick="knSelAll(false)">נקה בחירה</button><span class="imp-note" id="knSelCount"></span></div>
-    <div class="kn-list">${knList.map((x,i)=>`<label class="kn-item"><input type="checkbox" data-i="${i}" ${!lim||i<40?'checked':''} onchange="knCount()"/><span class="phase-b">${x.date.split('-').reverse().join('/')}</span><span>${esc(x.name)}</span><span class="phase-b">${phaseFor(Number(document.getElementById('knEvent').value),x.date)==='before'?'לפני':phaseFor(Number(document.getElementById('knEvent').value),x.date)==='after'?'אחרי':'תוך כדי'}</span><span class="imp-note">${x.ext}</span></label>`).join('')}</div>
-    ${lim?'<p class="imp-warn">נבחרו אוטומטית 40 הראשונים. כל פרוטוקול נוסף מאריך את הסריקה ומייקר את שלב הבינה המלאכותית.</p>':''}
+    <div class="word-row" style="margin-bottom:8px"><button class="mini" onclick="knSelAll(true)">בחר הכל</button><button class="mini" onclick="knSelAll(false)">נקה בחירה</button><button class="mini" onclick="knSelNext(40)">בחר 40 הבאים שלא נסרקו</button>
+      <span class="imp-note">טווח: <input type="number" id="knRngA" min="1" max="${knList.length}" value="1" style="width:64px"/> – <input type="number" id="knRngB" min="1" max="${knList.length}" value="${Math.min(40,knList.length)}" style="width:64px"/></span><button class="mini" onclick="knSelRange()">בחר טווח</button>
+      <span class="imp-note" id="knSelCount"></span></div>
+    <div class="kn-list">${knList.map((x,i)=>`<label class="kn-item"><input type="checkbox" data-i="${i}" ${!lim||isAuto(x)?'checked':''} onchange="knCount()"/><span class="imp-note" style="min-width:2.5em">${i+1}.</span><span class="phase-b">${x.date.split('-').reverse().join('/')}</span><span>${esc(x.name)}</span><span class="phase-b">${phaseFor(evNum,x.date)==='before'?'לפני':phaseFor(evNum,x.date)==='after'?'אחרי':'תוך כדי'}</span><span class="imp-note">${x.ext}</span>${knDone.has(x.file)?'<span class="phase-b">נסרק</span>':''}</label>`).join('')}</div>
+    ${lim?`<p class="imp-warn">סך הכול ${knList.length} פרוטוקולים${nDone?` · ${nDone} כבר נסרקו`:''}. נבחרו אוטומטית 40 שטרם נסרקו. כל פרוטוקול נוסף מאריך את הסריקה ומייקר את שלב הבינה המלאכותית.</p>`:''}
     <div class="imp-actions" style="margin-bottom:0"><button class="ebtn ebtn-p" onclick="knScan()">סרוק את הפרוטוקולים שנבחרו</button><button class="ebtn ebtn-s" onclick="knStop()">עצור</button></div></div>`;
   knCount();
 }
 function knSelAll(v){document.querySelectorAll('#knList input[data-i]').forEach(i=>i.checked=v);knCount()}
+function knSelRange(){
+  const a=Math.max(1,Number(document.getElementById('knRngA').value)||1),b=Math.min(knList.length,Number(document.getElementById('knRngB').value)||0);
+  document.querySelectorAll('#knList input[data-i]').forEach(i=>{const n=+i.dataset.i+1;i.checked=n>=a&&n<=b});
+  knCount();
+}
+function knSelNext(n){
+  let k=0;
+  document.querySelectorAll('#knList input[data-i]').forEach(i=>{
+    const x=knList[+i.dataset.i];
+    if(knDone.has(x.file)||k>=n){i.checked=false;return}
+    i.checked=true;k++;
+  });
+  knCount();
+}
 function knCount(){const n=document.querySelectorAll('#knList input[data-i]:checked').length;const el=document.getElementById('knSelCount');if(el)el.textContent=`${n} נבחרו`}
 
 async function protocolText(p){
@@ -2658,7 +2678,7 @@ async function knScan(){
           knCands.push({p,ti,speaker:tu.speaker,actor:a?a.id:'',actorName:a?a.name:'',turn:tu.text,hits,excerpts:[{text:tu.text,whole:true,sel:!useAI}]});
         });
       }catch(e){failed++;errs.push(`${p.date} ${p.name}: ${e.message}`)}
-      done++;knStatus(`סורק פרוטוקולים: ${done} מתוך ${sel.length} · ${knCands.length} קטעי דיבור מתאימים`,true);
+      knDone.add(p.file);done++;knStatus(`סורק פרוטוקולים: ${done} מתוך ${sel.length} · ${knCands.length} קטעי דיבור מתאימים`,true);
     }
   };
   await Promise.all([worker(),worker(),worker()]);
@@ -2666,7 +2686,7 @@ async function knScan(){
   knRunning=false;
   knStatus(`${knAbort?'הסריקה הופסקה · ':''}נסרקו ${done-failed} פרוטוקולים (${turnsSeen} קטעי דיבור) · ${knCands.length} קטעים מתאימים${failed?` · ${failed} פרוטוקולים נכשלו`:''}`);
   if(errs.length)console.warn(errs.join('\n'));
-  renderKnResults(evn,errs);
+  renderKnList();renderKnResults(evn,errs);
 }
 async function knAI(evn){
   const e=evByN(evn);
