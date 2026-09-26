@@ -2445,15 +2445,37 @@ const KGROUPS=[
 ];
 let knList=[],knCands=[],knAbort=false,knRunning=false;
 const knTextCache=new Map();
-function kproxy(){try{return (localStorage.getItem('thesis_knesset_proxy')||KPROXY_DEFAULT).replace(/\/+$/,'')}catch(e){return KPROXY_DEFAULT}}
-function saveKProxy(v){try{localStorage.setItem('thesis_knesset_proxy',v.trim())}catch(e){}}
+function normProxy(v){
+  let s=String(v||'').trim();
+  if(!s)return KPROXY_DEFAULT;
+  if(!/^https?:\/\//i.test(s))s='https://'+s;
+  try{const u=new URL(s);return u.origin+u.pathname.replace(/\/+$/,'')}catch(e){return KPROXY_DEFAULT}
+}
+function kproxy(){try{return normProxy(localStorage.getItem('thesis_knesset_proxy')||KPROXY_DEFAULT)}catch(e){return KPROXY_DEFAULT}}
+function saveKProxy(v){const n=normProxy(v);try{localStorage.setItem('thesis_knesset_proxy',n)}catch(e){}const el=document.getElementById('knProxy');if(el)el.value=n;return n}
 function addDays(d,n){const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}
 function eventWindow(evn){const a=EVENT_ANCHOR[evn];return a?[addDays(a[0],-90),addDays(a[1],120)]:null}
 function phaseFor(evn,date){const a=EVENT_ANCHOR[evn];if(!a||!date)return 'during';return date<a[0]?'before':date>a[1]?'after':'during'}
+const kSleep=ms=>new Promise(r=>setTimeout(r,ms));
+const KDELAY=500;let kLastAt=0;
+async function kGate(){const w=kLastAt+KDELAY-Date.now();if(w>0)await kSleep(w);kLastAt=Date.now()}
 async function kGet(url,asBuf){
-  const r=await fetch(kproxy()+'/?u='+encodeURIComponent(url));
-  if(!r.ok)throw new Error(`שגיאה ${r.status} בגישה ל${/fs\.knesset/.test(url)?'קובץ הפרוטוקול':'מאגר הכנסת'}`);
-  return asBuf?r.arrayBuffer():r.json();
+  const what=/fs\.knesset/.test(url)?'קובץ הפרוטוקול':'מאגר הכנסת';
+  let last='';
+  for(let a=0;a<4;a++){
+    await kGate();
+    if(knAbort)throw new Error('הסריקה הופסקה');
+    let r;
+    try{r=await fetch(kproxy()+'/?u='+encodeURIComponent(url))}
+    catch(e){last='לא ניתן להגיע ל-Worker בכתובת '+kproxy()+' ('+(e.message||'')+')';await kSleep(800*(a+1));continue}
+    if(r.ok)return asBuf?r.arrayBuffer():r.json();
+    let body='';try{body=(await r.text()).slice(0,300)}catch(e){}
+    const plain=body.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+    last=`שגיאה ${r.status} בגישה ל${what}`+(plain?' — '+plain:'');
+    if([429,474,500,502,503,504].includes(r.status)){await kSleep(1500*(a+1));continue}
+    throw new Error(last);
+  }
+  throw new Error(last||('שגיאה בגישה ל'+what));
 }
 async function odataAll(entity,filter,select,max){
   const out=[];let skip=0;max=max||5000;
@@ -2465,10 +2487,11 @@ async function odataAll(entity,filter,select,max){
   }
   return out;
 }
-async function odataIn(entity,field,ids,extra,select){
-  const out=[];
-  for(let i=0;i<ids.length;i+=20){
-    const f='('+ids.slice(i,i+20).map(id=>`${field} eq ${id}`).join(' or ')+')'+(extra?' and '+extra:'');
+async function odataIn(entity,field,ids,extra,select,label){
+  const out=[];const tot=Math.ceil(ids.length/40);
+  for(let i=0,b=0;i<ids.length;i+=40,b++){
+    if(label&&tot>2)knStatus(`${label} (${b+1}/${tot})`,true);
+    const f='('+ids.slice(i,i+40).map(id=>`${field} eq ${id}`).join(' or ')+')'+(extra?' and '+extra:'');
     out.push(...await odataAll(entity,f,select));
   }
   return out;
@@ -2519,7 +2542,7 @@ async function knFind(){
       const all=groups.some(g=>g.k==='all');
       const keep=ses.filter(s=>all||groups.some(g=>g.re.test(cname[s.CommitteeID]||'')));
       knStatus(`${keep.length} ישיבות בוועדות שנבחרו; מאתר קובצי פרוטוקול...`,true);
-      const docs=await odataIn('KNS_DocumentCommitteeSession','CommitteeSessionID',keep.map(s=>s.Id),'GroupTypeID eq 23','CommitteeSessionID,ApplicationDesc,FilePath');
+      const docs=await odataIn('KNS_DocumentCommitteeSession','CommitteeSessionID',keep.map(s=>s.Id),'GroupTypeID eq 23','CommitteeSessionID,ApplicationDesc,FilePath','מאתר קובצי פרוטוקול של ועדות');
       keep.forEach(s=>{
         const d=pickDoc(docs.filter(x=>x.CommitteeSessionID===s.Id));
         list.push({kind:'committee',sid:s.Id,date:dPart(s.StartDate),name:cname[s.CommitteeID]||'ועדה',secret:s.TypeDesc==='חסויה',file:d&&d.FilePath,ext:d&&d.ApplicationDesc,sessionUrl:s.SessionUrl||''});
@@ -2528,7 +2551,7 @@ async function knFind(){
     if(plenum){
       knStatus('מחפש ישיבות מליאה...',true);
       const ps=await odataAll('KNS_PlenumSession',df,'Id,StartDate,Name');
-      const docs=await odataIn('KNS_DocumentPlenumSession','PlenumSessionID',ps.map(s=>s.Id),null,'PlenumSessionID,GroupTypeDesc,ApplicationDesc,FilePath');
+      const docs=await odataIn('KNS_DocumentPlenumSession','PlenumSessionID',ps.map(s=>s.Id),null,'PlenumSessionID,GroupTypeDesc,ApplicationDesc,FilePath','מאתר קובצי דברי הכנסת');
       ps.forEach(s=>{
         const mine=docs.filter(x=>x.PlenumSessionID===s.Id);
         const pref=mine.filter(x=>/דברי הכנסת/.test(x.GroupTypeDesc||''));
