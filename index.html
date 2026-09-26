@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.2 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9.3 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -337,7 +337,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.2</p>
+    <p>כלי מחקר · יובל בלומברג · v9.3</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -788,7 +788,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.2';
+const APP_VERSION='v9.3';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -2443,7 +2443,11 @@ const KGROUPS=[
   {k:'finance',l:'ועדת הכספים',re:/^ועדת הכספים$/},
   {k:'all',l:'כל הוועדות',re:/./}
 ];
-let knList=[],knCands=[],knAbort=false,knRunning=false;
+let knList=[],knCands=[],knAbort=false,knRunning=false,knEvn=0,knErrs=[];
+function knSelExUpd(){const el=document.getElementById("knSelEx");if(el)el.textContent=knCands.reduce((s,c)=>s+c.excerpts.filter(x=>x.sel).length,0)}
+function knDelEx(ci,xi){knCands[ci].excerpts.splice(xi,1);renderKnResults(knEvn,knErrs)}
+function knDelFile(file){if(!confirm('להסיר את כל המובאות מהפרוטוקול הזה מהרשימה?'))return;knCands.forEach(c=>{if(c.p.file===file)c.excerpts=[]});renderKnResults(knEvn,knErrs)}
+function knSelEx(v){knCands.forEach(c=>c.excerpts.forEach(x=>x.sel=v));renderKnResults(knEvn,knErrs)}
 const knTextCache=new Map();
 function normProxy(v){
   let s=String(v||'').trim();
@@ -2605,14 +2609,22 @@ async function pdfToText(buf){
   return out;
 }
 // split a protocol into speaker turns: a speaker line is short and ends with a colon
+const KN_BAD_SPK=/^(סדר היום|נכחו|חברי הוועדה|מוזמנים|ייעוץ משפטי|מנהל(ת)? הוועדה|רישום פרלמנטרי|רשמ(ה|ו|ת)|קצרנית|הנושא|על סדר היום|תוכן העניינים|שאילתות)/;
+function knClean(n){n=String(n).replace(/^[<>]+|[<>]+$/g,'').replace(/\s*:\s*$/,'').trim();return n.length>=2&&n.length<=90&&!KN_BAD_SPK.test(n)?n:null}
+function knSpkBracket(l){const m=l.match(/^[<>]{1,2}\s*(.+?)\s*[<>]{1,2}$/);return m?knClean(m[1]):null}   // <שם:>  או <<שם>>
+function knSpkColon(l){return l.length>=3&&l.length<=90&&/:$/.test(l)&&!/[.?!;]/.test(l.slice(0,-1))?knClean(l):null}
 function splitTurns(text){
-  const lines=String(text).split(/\n/).map(l=>l.replace(/<<\s*[^>]*>>/g,'').replace(/\s+/g,' ').trim());
+  const lines=String(text).split(/\n/).map(l=>l.replace(/\s+/g,' ').trim());
+  // פרוטוקולים רבים מסמנים דובר בסוגריים משולשים. אם כך בקובץ הזה, מתעלמים משורות שמסתיימות בנקודתיים
+  // כדי שלא ייחשבו בטעות לדוברים (למשל "רצוני לשאול:").
+  const nB=lines.reduce((s,l)=>s+(knSpkBracket(l)?1:0),0);
+  const spkOf=nB>=5?knSpkBracket:(l=>knSpkBracket(l)||knSpkColon(l));
   const turns=[];let curT=null;
-  const isSpeaker=l=>l.length>=3&&l.length<=90&&/:$/.test(l)&&!/[.?!;]/.test(l.slice(0,-1))&&!/^(סדר היום|נכחו|חברי הוועדה|מוזמנים|ייעוץ משפטי|מנהל(ת)? הוועדה|רישום פרלמנטרי|רשמ(ה|ו|ת)|קצרנית|הנושא|על סדר היום)/.test(l);
   lines.forEach(l=>{
     if(!l)return;
-    if(isSpeaker(l)){if(curT&&curT.lines.length)turns.push(curT);curT={speaker:l.slice(0,-1).trim(),lines:[]};return}
-    if(curT)curT.lines.push(l);
+    const sp=spkOf(l);
+    if(sp){if(curT&&curT.lines.length)turns.push(curT);curT={speaker:sp,lines:[]};return}
+    if(curT){const c=l.replace(/<<\s*[^>]*>>/g,'').trim();if(c)curT.lines.push(c)}
   });
   if(curT&&curT.lines.length)turns.push(curT);
   return turns.map(t=>({speaker:t.speaker,text:t.lines.join('\n')}));
@@ -2699,14 +2711,17 @@ ${JSON.stringify(items)}
 }
 function renderKnResults(evn,errs){
   const el=document.getElementById('knResults');
+  knEvn=evn;if(errs)knErrs=errs;errs=knErrs;
   const groups=new Map();knCands.forEach((c,ci)=>{if(!c.excerpts.length)return;const k=c.p.file;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(ci)});
   const nEx=knCands.reduce((s,c)=>s+c.excerpts.length,0);
+  const nSel=knCands.reduce((s,c)=>s+c.excerpts.filter(x=>x.sel).length,0);
   const tagLine=t=>{if(!t)return '';const q=emptyQuote();applyAiTags(q,t);return qTagText(q)};
-  el.innerHTML=(nEx?`<div class="imp-sum">${nEx} מובאות מ-${groups.size} פרוטוקולים${knCands._rejected?` · ${knCands._rejected} מובאות שהבינה המלאכותית הציעה נפסלו כי אינן מופיעות מילה במילה בפרוטוקול`:''}</div>`:'<div class="empty-src">לא נמצאו קטעים מתאימים. נסה להרחיב את מילות המפתח, את הטווח או את רשימת השחקנים.</div>')
+  el.innerHTML=(nEx?`<div class="imp-sum">${nEx} מובאות מ-${groups.size} פרוטוקולים · <span id="knSelEx">${nSel}</span> מסומנות לייבוא${knCands._rejected?` · ${knCands._rejected} מובאות שהבינה המלאכותית הציעה נפסלו כי אינן מופיעות מילה במילה בפרוטוקול`:''}</div>
+    <div class="word-row" style="margin-bottom:10px"><button class="mini" onclick="knSelEx(true)">סמן הכל</button><button class="mini" onclick="knSelEx(false)">נקה הכל</button><span class="imp-note">× מסיר מובאה מהרשימה. הסרה אינה משפיעה על מה שכבר יובא.</span></div>`:'<div class="empty-src">לא נמצאו קטעים מתאימים. נסה להרחיב את מילות המפתח, את הטווח או את רשימת השחקנים.</div>')
   +[...groups.entries()].map(([file,cis])=>{
     const p=knCands[cis[0]].p;const ph=phaseFor(evn,p.date);
-    return `<div class="imp-art"><div class="imp-art-h"><span class="imp-art-name">${esc(p.name)} — ${p.date.split('-').reverse().join('/')}</span><span class="phase-b">${PLABEL[ph]}</span><a class="mini" href="${esc(file)}" target="_blank" rel="noopener">הפרוטוקול המלא ↗</a></div>
-      ${cis.map(ci=>{const c=knCands[ci];return c.excerpts.map((x,xi)=>`<div class="kn-ex${x.whole?' whole':''}"><label class="kn-ex-h"><input type="checkbox" ${x.sel?'checked':''} onchange="knCands[${ci}].excerpts[${xi}].sel=this.checked"/><strong>${esc(c.speaker)}</strong>${c.actorName?`<span class="phase-b">${esc(c.actorName)}</span>`:''}${c.hits.length?`<span class="imp-note">מילות מפתח: ${esc(c.hits.join(', '))}</span>`:''}${x.whole?'<span class="imp-note">קטע הדיבור המלא — אפשר לקצר אחרי הייבוא</span>':''}</label><div class="kn-ex-text">${esc(x.text)}</div>${x.tags?`<div class="qres-why">${esc(tagLine(x.tags))}${x.tags.reason?' — '+esc(x.tags.reason):''}</div>`:''}</div>`).join('')}).join('')}
+    return `<div class="imp-art"><div class="imp-art-h"><span class="imp-art-name">${esc(p.name)} — ${p.date.split('-').reverse().join('/')}</span><span class="phase-b">${PLABEL[ph]}</span><a class="mini" href="${esc(file)}" target="_blank" rel="noopener">הפרוטוקול המלא ↗</a><button class="mini" title="הסר את כל המובאות מהפרוטוקול הזה" onclick="knDelFile('${esc(file)}')">×</button></div>
+      ${cis.map(ci=>{const c=knCands[ci];return c.excerpts.map((x,xi)=>`<div class="kn-ex${x.whole?' whole':''}"><label class="kn-ex-h"><input type="checkbox" ${x.sel?'checked':''} onchange="knCands[${ci}].excerpts[${xi}].sel=this.checked;knSelExUpd()"/><strong>${esc(c.speaker)}</strong>${c.actorName?`<span class="phase-b">${esc(c.actorName)}</span>`:''}${c.hits.length?`<span class="imp-note">מילות מפתח: ${esc(c.hits.join(', '))}</span>`:''}${x.whole?'<span class="imp-note">קטע הדיבור המלא — אפשר לקצר אחרי הייבוא</span>':''}<button class="mini" style="margin-inline-start:auto" title="הסר מובאה זו" onclick="event.preventDefault();event.stopPropagation();knDelEx(${ci},${xi})">×</button></label><div class="kn-ex-text">${esc(x.text)}</div>${x.tags?`<div class="qres-why">${esc(tagLine(x.tags))}${x.tags.reason?' — '+esc(x.tags.reason):''}</div>`:''}</div>`).join('')}).join('')}
     </div>`}).join('')
   +(nEx?`<div class="imp-actions"><button class="ebtn ebtn-p" onclick="knImport(${evn})">ייבא את המובאות שנבחרו</button><span class="imp-note">כל פרוטוקול נכנס כמקור מסוג פרוטוקול. תיוג שהוצע נכנס כ"ממתין לאישור".</span></div>`:'')
   +(errs&&errs.length?`<details class="kn-errs"><summary>${errs.length} פרוטוקולים לא נקראו</summary>${errs.map(x=>`<div>${esc(x)}</div>`).join('')}</details>`:'');
