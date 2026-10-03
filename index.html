@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.6 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9.7 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -351,7 +351,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.6</p>
+    <p>כלי מחקר · יובל בלומברג · v9.7</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -682,12 +682,14 @@ a.mini{color:var(--text)}
         <label class="imp-chk">עד תאריך <input type="date" id="prTo"/></label>
         <select id="prSlice"><option value="0" selected>חלון אחד</option><option value="1">פירוק לחודשים</option><option value="3">פירוק לרבעונים</option></select>
       </div>
-      <p style="margin:0">הסריקה מוגבלת לרשימת כלי התקשורת שהוגדרה במנוע החיפוש. פירוק החלון לחודשים מעקף את תקרת מאה התוצאות לשאילתה, במחיר של יותר שאילתות.</p>
+      <p style="margin:0">הסריקה מוגבלת לרשימת כלי התקשורת שמוגדרת למטה. פירוק החלון לחודשים מצמצם את ההחמצה בטווחים ארוכים, במחיר של יותר שאילתות.</p>
     </div>
     <div class="exp-card">
       <h3>2. רשת מילות המפתח</h3>
       <div class="ana-label">מושגים</div>
       <textarea id="prConcepts" rows="3"></textarea>
+      <div class="ana-label" style="margin-top:8px">כלי תקשורת (דומיינים, מופרדים בפסיק)</div>
+      <textarea id="prSites" rows="3"></textarea>
       <div class="ana-label" style="margin-top:8px">שחקנים ופרשנים (שורה לשורה או מופרדים בפסיק)</div>
       <textarea id="prActors" rows="4"></textarea>
       <div class="word-row" style="margin-top:8px">
@@ -695,6 +697,7 @@ a.mini{color:var(--text)}
         <label class="imp-chk"><input type="radio" name="prMode" value="a" onchange="prEstimate()"/> שחקנים בלבד</label>
         <label class="imp-chk"><input type="radio" name="prMode" value="ac" onchange="prEstimate()"/> צירופים: שחקן × מושג</label>
         <label class="imp-chk">עמודי תוצאות לשאילתה <input type="number" id="prPages" value="1" min="1" max="10" style="width:60px" onchange="prEstimate()"/></label>
+        <label class="imp-chk">אתרים בכל שאילתה <input type="number" id="prBucket" value="8" min="2" max="12" style="width:60px" onchange="prEstimate()"/></label>
       </div>
       <p class="imp-warn" id="prEst" style="margin:8px 0 0"></p>
     </div>
@@ -706,12 +709,12 @@ a.mini{color:var(--text)}
     <div id="prResults"></div>
     <details class="exp-card" style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">הגדרות מנוע החיפוש</summary>
       <div class="word-row" style="margin-top:10px">
-        <label class="imp-chk">API key <input type="password" id="prKey" style="min-width:240px"/></label>
-        <label class="imp-chk">Search engine ID <input type="text" id="prCx" style="min-width:200px"/></label>
+        <label class="imp-chk">Serper API key <input type="password" id="prKey" style="min-width:240px"/></label>
+        <label class="imp-chk">כתובת Worker (לא חובה) <input type="text" id="prCx" style="min-width:220px" placeholder="https://thesis-proxy....workers.dev/serper"/></label>
         <button class="mini" onclick="prSaveCfg()">שמור</button><button class="mini" onclick="prTest()">בדוק חיבור</button>
         <span class="imp-note" id="prCfgStatus"></span>
       </div>
-      <p class="imp-note" style="margin:8px 0 0">המפתח נשמר בדפדפן שלך בלבד ואינו נשלח לשום מקום מלבד גוגל. מכסת החינם היא מאה שאילתות ביום.</p>
+      <p class="imp-note" style="margin:8px 0 0">המפתח נשמר בדפדפן שלך בלבד. אם הדפדפן חוסם את הפנייה הישירה, הכלי ינסה דרך ה-Worker אם הגדרת כתובת. מכסת החינם של Serper היא כ-2,500 שאילתות.</p>
     </details>
   </div>
 </div>
@@ -849,7 +852,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.6';
+const APP_VERSION='v9.7';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -2497,15 +2500,15 @@ function fmtUS(d){const [y,m,dd]=d.split('-');return `${+m}/${+dd}/${y}`}
 
 
 // ══════════ SYSTEMATIC PRESS REVIEW (Google Programmable Search, site-restricted) ══════════
-const GCSE='https://www.googleapis.com/customsearch/v1';
-const PR_CX_DEFAULT='912023e96b39040ee';
+const SERPER='https://google.serper.dev/search';
+const PR_SITES=['haaretz.co.il','themarker.com','ynet.co.il','calcalist.co.il','maariv.co.il','nrg.co.il','israelhayom.co.il','globes.co.il','inn.co.il','makorrishon.co.il','srugim.co.il','mida.org.il','now14.co.il','walla.co.il','mako.co.il','13tv.co.il','kan.org.il','timesofisrael.com','jpost.com','inss.org.il','jiss.org.il','jcpa.org.il','israeldefense.co.il','maarachot.idf.il'];
 const PR_CONCEPTS=['הרתעה','שקט תמורת שקט','חמאס מורתע','הסדרה','ניהול הסכסוך','בידול','סבב לחימה','מנהרות','כיפת ברזל','שיקום עזה','מזוודות קטאר','היתרי עבודה','מעברים','ממשלת האחדות','הרשות הפלסטינית','אבו מאזן','תפיסת הביטחון','הקונספציה'];
 const PR_ACTORS=['בנימין נתניהו','אהוד ברק','אריאל שרון','אהוד אולמרט','יצחק רבין','שמעון פרס','משה יעלון','אביגדור ליברמן','בני גנץ','נפתלי בנט','גדי איזנקוט','אביב כוכבי','הרצי הלוי','יורם כהן','נדב ארגמן','רונן בר','תמיר הימן','אהרן חליוה','עמוס ידלין','יעקב עמידרור','גיורא איילנד','עמוס גלעד','יצחק בריק','גרשון הכהן','עמוס הראל','אבי יששכרוף','רון בן-ישי','אלכס פישמן','יוסי יהושע','יואב לימור','אמיר רפפורט','אור הלר','אלון בן-דוד','כרמלה מנשה','טל לב-רם','אמיר בוחבוט','רונן ברגמן','יוסי מלמן','אהוד יערי','צבי יחזקאלי','יוני בן מנחם','ברק רביד','איתמר אייכנר','אריאל כהנא','נחום ברנע','סימה קדמון','בן כספית','יוסי ורטר','אלוף בן','רביב דרוקר','אמנון אברמוביץ','דן מרגלית','קלמן ליבסקינד','עמית סגל','מתי טוכפלד','בועז ביסמוט','דרור אידר','נדב שרגאי','חגי סגל','קרוליין גליק','יעקב ברדוגו','אראל סגל','אבישי בן חיים','קובי מיכאל','מיכאל מילשטיין','יוחנן צורף','ערן לרמן','אפרים ענבר','מרדכי קידר','יוסי קופרוסר'];
 let prHits=[],prLog=[],prAbort=false,prRunning=false;
 function prCfg(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
 function prSaveCfg(){
-  try{localStorage.setItem('thesis_gcse_key',document.getElementById('prKey').value.trim());
-      localStorage.setItem('thesis_gcse_cx',document.getElementById('prCx').value.trim())}catch(e){}
+  try{localStorage.setItem('thesis_serper_key',document.getElementById('prKey').value.trim());
+      localStorage.setItem('thesis_serper_worker',document.getElementById('prCx').value.trim())}catch(e){}
   document.getElementById('prCfgStatus').textContent='נשמר';
 }
 function buildPressPage(){
@@ -2513,8 +2516,9 @@ function buildPressPage(){
   if(s&&!s.options.length){s.innerHTML=STRESS.map(e=>`<option value="${e.n}">${evTitle(e)}</option>`).join('');s.value=String(EVENTS[cur].bg?9:EVENTS[cur].n);prSetWindow()}
   const c=document.getElementById('prConcepts');if(c&&!c.value)c.value=PR_CONCEPTS.join(', ');
   const a=document.getElementById('prActors');if(a&&!a.value)a.value=PR_ACTORS.join(', ');
-  const k=document.getElementById('prKey');if(k&&!k.value)k.value=prCfg('thesis_gcse_key','');
-  const x=document.getElementById('prCx');if(x&&!x.value)x.value=prCfg('thesis_gcse_cx',PR_CX_DEFAULT);
+  const st=document.getElementById('prSites');if(st&&!st.value)st.value=PR_SITES.join(', ');
+  const k=document.getElementById('prKey');if(k&&!k.value)k.value=prCfg('thesis_serper_key','');
+  const x=document.getElementById('prCx');if(x&&!x.value)x.value=prCfg('thesis_serper_worker','');
   prEstimate();
 }
 function prSetWindow(){const w=eventWindow(Number(document.getElementById('prEvent').value));if(w){document.getElementById('prFrom').value=w[0];document.getElementById('prTo').value=w[1]}prEstimate()}
@@ -2534,49 +2538,71 @@ function prWindows(){
   }
   return out;
 }
+function prSiteBuckets(){
+  const sites=prTerms('prSites'),b=Math.max(2,Number(document.getElementById('prBucket').value||8));
+  const out=[];for(let i=0;i<sites.length;i+=b)out.push(sites.slice(i,i+b));
+  return out.length?out:[[]];
+}
 function prQueries(){
   const con=prTerms('prConcepts'),act=prTerms('prActors'),m=prMode();
   let base=[];
   if(m==='c')base=con;
   else if(m==='a')base=act.map(a=>`"${a}"`);
   else act.forEach(a=>con.forEach(c=>base.push(`"${a}" ${c}`)));
-  const out=[];
-  prWindows().forEach(w=>base.forEach(q=>out.push({q,from:w[0],to:w[1]})));
+  const buckets=prSiteBuckets(),out=[];
+  prWindows().forEach(w=>base.forEach(t=>buckets.forEach(bk=>{
+    const sq=bk.length?' ('+bk.map(d=>'site:'+d).join(' OR ')+')':'';
+    out.push({q:t+sq,term:t,from:w[0],to:w[1]});
+  })));
   return out;
 }
 function prEstimate(){
   const el=document.getElementById('prEst');if(!el)return;
   const n=prQueries().length,pages=Math.max(1,Number(document.getElementById('prPages').value||1));
   const calls=n*pages;
-  el.textContent=`${n} שאילתות × ${pages} עמודים = ${calls} קריאות ל-API.`+(calls>100?` זה חורג ממכסת החינם היומית (100). צמצם את הטווח, את מספר המושגים או את הפירוק, או שתחויב כחמישה דולר לאלף קריאות.`:` מכסת החינם היומית היא 100.`);
+  el.textContent=`${n} שאילתות × ${pages} עמודים = ${calls} קריאות. מכסת החינם של Serper היא כ-2,500 קריאות.`+(calls>2500?' זה חורג ממנה — צמצם את הטווח או את מספר המושגים.':'');
   el.style.display=calls?'':'none';
-  el.style.color=calls>100?'#9b2c2c':'';
+  el.style.color=calls>2500?'#9b2c2c':'';
 }
 const prDate=d=>d.replace(/-/g,'');
-async function prFetch(q,from,to,start){
-  const key=prCfg('thesis_gcse_key',''),cx=prCfg('thesis_gcse_cx',PR_CX_DEFAULT);
-  if(!key)throw new Error('לא הוגדר API key בהגדרות מנוע החיפוש');
-  const u=`${GCSE}?key=${encodeURIComponent(key)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(q)}&num=10&start=${start}&sort=${encodeURIComponent('date:r:'+prDate(from)+':'+prDate(to))}`;
-  const r=await fetch(u);
+function prTbs(from,to){
+  const f=d=>{const p=d.split('-');return `${+p[1]}/${+p[2]}/${p[0]}`};
+  return `cdr:1,cd_min:${f(from)},cd_max:${f(to)}`;
+}
+async function prFetch(q,from,to,page){
+  const key=prCfg('thesis_serper_key','');
+  if(!key)throw new Error('לא הוגדר מפתח Serper בהגדרות');
+  const body={q,gl:'il',hl:'he',num:10,page,tbs:prTbs(from,to)};
+  const worker=prCfg('thesis_serper_worker','');
+  const call=url=>fetch(url,{method:'POST',headers:{'X-API-KEY':key,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let r;
+  try{r=await call(SERPER)}
+  catch(e){
+    if(!worker)throw new Error('הדפדפן חסם את הפנייה ל-Serper. הגדר כתובת Worker בהגדרות ונתב דרכו.');
+    r=await call(worker);
+  }
   const j=await r.json().catch(()=>({}));
-  if(!r.ok){const m=(j.error&&j.error.message)||('שגיאה '+r.status);throw new Error(m)}
+  if(!r.ok)throw new Error((j&&(j.message||j.error))||('שגיאה '+r.status));
   return j;
 }
 async function prTest(){
   prSaveCfg();
   const el=document.getElementById('prCfgStatus');el.textContent='בודק...';
-  try{const j=await prFetch('חמאס','2014-07-01','2014-08-31',1);
-    el.textContent=`✓ החיבור תקין — ${(j.searchInformation&&j.searchInformation.totalResults)||0} תוצאות לשאילתת בדיקה`}
+  try{const j=await prFetch('חמאס (site:ynet.co.il OR site:haaretz.co.il)','2014-07-01','2014-08-31',1);
+    const n=(j.organic||[]).length;
+    const dated=(j.organic||[]).filter(x=>x.date).length;
+    el.textContent=n?`✓ החיבור תקין — ${n} תוצאות לשאילתת בדיקה, ${dated} מהן עם תאריך`:'החיבור תקין אך לא חזרו תוצאות לשאילתת הבדיקה';}
   catch(e){el.textContent='✗ '+e.message}
 }
 function prStop(){prAbort=true}
 function prStatus(t,busy){const el=document.getElementById('prStatus');el.textContent=t;el.classList.toggle('busy',!!busy)}
+const PR_MON={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
 function prItemDate(it){
-  const pm=it.pagemap||{},mt=(pm.metatags||[])[0]||{};
-  const c=mt['article:published_time']||mt['datepublished']||mt['date']||(pm.newsarticle&&pm.newsarticle[0]&&pm.newsarticle[0].datepublished)||'';
-  const m=String(c).match(/\d{4}-\d{2}-\d{2}/);
-  if(m)return m[0];
-  return '';
+  const d=String(it.date||'');
+  let m=d.match(/^([A-Za-z]{3})[a-z]*\s+(\d{1,2}),\s*(\d{4})$/);
+  if(m){const mm=PR_MON[m[1].toLowerCase()];if(mm)return `${m[3]}-${mm}-${String(m[2]).padStart(2,'0')}`}
+  m=d.match(/\d{4}-\d{2}-\d{2}/);
+  return m?m[0]:'';
 }
 async function prRun(){
   if(prRunning)return;
@@ -2588,16 +2614,19 @@ async function prRun(){
   prRunning=true;prAbort=false;prHits=[];prLog=[];
   const seen=new Set();
   let done=0,failed=0;const errs=[];
-  for(const {q,from,to} of qs){
+  for(const qq of qs){
+    const {q,from,to}=qq;
     if(prAbort)break;
     let n=0;
     for(let pg=0;pg<pages&&!prAbort;pg++){
       try{
-        const j=await prFetch(q,from,to,pg*10+1);
-        const items=j.items||[];n+=items.length;
+        const j=await prFetch(q,from,to,pg+1);
+        const items=j.organic||[];n+=items.length;
         items.forEach(it=>{
+          if(!it.link)return;
           const k=normUrl(it.link);if(seen.has(k))return;seen.add(k);
-          prHits.push({title:it.title||'',link:it.link,snippet:it.snippet||'',site:it.displayLink||'',date:prItemDate(it),q,from,to});
+          let host='';try{host=new URL(it.link).hostname.replace(/^www\./,'')}catch(e){host='—'}
+          prHits.push({title:it.title||'',link:it.link,snippet:it.snippet||'',site:host,date:prItemDate(it),q:qq.term||q,from,to});
         });
         if(items.length<10)break;
       }catch(e){failed++;errs.push(`${q} (${from}): ${e.message}`);break}
