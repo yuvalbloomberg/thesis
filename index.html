@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.8 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9.9 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -351,7 +351,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.8</p>
+    <p>כלי מחקר · יובל בלומברג · v9.9</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -852,7 +852,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.8';
+const APP_VERSION='v9.9';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -2500,6 +2500,16 @@ function fmtUS(d){const [y,m,dd]=d.split('-');return `${+m}/${+dd}/${y}`}
 
 
 // ══════════ SYSTEMATIC PRESS REVIEW (Google Programmable Search, site-restricted) ══════════
+// ── remember free-text fields between sessions ──
+function persistField(id,key,def){
+  const el=document.getElementById(id);if(!el)return;
+  let v='';try{v=localStorage.getItem(key)||''}catch(e){}
+  if(!el.value)el.value=(v!==''?v:(def||''));
+  if(!el.dataset.persist){
+    el.dataset.persist='1';
+    el.addEventListener('input',()=>{try{localStorage.setItem(key,el.value)}catch(e){}});
+  }
+}
 const SERPER='https://google.serper.dev/search';
 const PR_SITES=['haaretz.co.il','themarker.com','ynet.co.il','calcalist.co.il','maariv.co.il','nrg.co.il','israelhayom.co.il','globes.co.il','inn.co.il','makorrishon.co.il','srugim.co.il','mida.org.il','now14.co.il','walla.co.il','mako.co.il','13tv.co.il','kan.org.il','timesofisrael.com','jpost.com','inss.org.il','jiss.org.il','jcpa.org.il','israeldefense.co.il','maarachot.idf.il'];
 const PR_CONCEPTS=['הרתעה','שקט תמורת שקט','חמאס מורתע','הסדרה','ניהול הסכסוך','בידול','סבב לחימה','מנהרות','כיפת ברזל','שיקום עזה','מזוודות קטאר','היתרי עבודה','מעברים','ממשלת האחדות','הרשות הפלסטינית','אבו מאזן','תפיסת הביטחון','הקונספציה'];
@@ -2518,9 +2528,9 @@ function buildPressPage(){
   }
   const s=document.getElementById('prEvent');
   if(s&&!s.options.length){s.innerHTML=STRESS.map(e=>`<option value="${e.n}">${evTitle(e)}</option>`).join('');s.value=String(EVENTS[cur].bg?9:EVENTS[cur].n);prSetWindow()}
-  const c=document.getElementById('prConcepts');if(c&&!c.value)c.value=PR_CONCEPTS.join(', ');
-  const a=document.getElementById('prActors');if(a&&!a.value)a.value=PR_ACTORS.join(', ');
-  const st=document.getElementById('prSites');if(st&&!st.value)st.value=PR_SITES.join(', ');
+  persistField('prConcepts','thesis_pr_concepts',PR_CONCEPTS.join(', '));
+  persistField('prActors','thesis_pr_actors',PR_ACTORS.join(', '));
+  persistField('prSites','thesis_pr_sites',PR_SITES.join(', '));
   const k=document.getElementById('prKey');if(k&&!k.value)k.value=prCfg('thesis_serper_key','');
   const x=document.getElementById('prCx');if(x&&!x.value)x.value=prCfg('thesis_serper_worker','');
   prEstimate();
@@ -2811,6 +2821,7 @@ function buildKnessetPage(){
   const g=document.getElementById('knGroups');
   if(g&&!g.children.length)g.innerHTML=KGROUPS.map(x=>`<label class="imp-chk"><input type="checkbox" value="${x.k}" ${x.k==='fadc'||x.k==='control'?'checked':''}/> ${x.l}</label>`).join('')+`<label class="imp-chk"><input type="checkbox" id="knPlenum" checked/> מליאת הכנסת</label>`;
   const p=document.getElementById('knProxy');if(p&&!p.value)p.value=kproxy();
+  persistField('knKeywords','thesis_kn_keywords','');
   renderActors();
 }
 function knSetWindow(){const w=eventWindow(Number(document.getElementById('knEvent').value));if(w){document.getElementById('knFrom').value=w[0];document.getElementById('knTo').value=w[1]}}
