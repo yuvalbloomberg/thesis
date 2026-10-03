@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.4 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9.6 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -328,6 +328,20 @@ textarea:focus{border-color:var(--accent)}
 a.mini{color:var(--text)}
 #knStatus.busy::before{content:'';display:inline-block;width:9px;height:9px;border:2px solid #c9b8e6;border-top-color:#4b2e83;border-radius:50%;margin-left:6px;vertical-align:-1px;animation:spin .8s linear infinite}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.chip{display:inline-block;border:1px solid var(--border);background:#fff;border-radius:11px;padding:1px 8px;font-size:11px;cursor:pointer;color:#44515e}
+.chip:hover{border-color:#8fa3b5}
+.chip.on{background:#1f3a52;border-color:#1f3a52;color:#fff}
+.kn-grp{display:inline-flex;gap:3px;align-items:center;flex-wrap:wrap;margin-left:10px}
+.kn-grp>b{font-size:11px;font-weight:600;color:var(--muted);margin-left:2px}
+.kn-tag{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;padding:6px 0 2px;border-top:1px dashed var(--border)}
+.kn-topics{font-size:11px;color:var(--muted);margin:2px 0 6px;padding-right:26px;line-height:1.5}
+.kn-ref{margin:0 0 14px;border:1px solid var(--border);border-radius:6px;padding:0 12px;background:#fbfbfa}
+.kn-ref summary{cursor:pointer;font-weight:600;font-size:13px;padding:9px 0}
+.kn-ref table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px}
+.kn-ref td{border:1px solid var(--border);padding:5px 7px;vertical-align:top;background:#fff}
+.kn-ref td:first-child{width:150px;font-weight:600;background:#f3f4f5;white-space:nowrap}
+.kn-ref h4{margin:12px 0 5px;font-size:12.5px}
 </style>
 <script src="https://accounts.google.com/gsi/client"></script>
 </head>
@@ -337,7 +351,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.4</p>
+    <p>כלי מחקר · יובל בלומברג · v9.6</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -347,6 +361,7 @@ a.mini{color:var(--text)}
     <div class="nav-item" onclick="showPage('import')" id="nav-import"><span class="num">—</span>ייבוא ציטוטים</div>
     <div class="nav-item" onclick="showPage('query')" id="nav-query"><span class="num">—</span>שאילתות על הציטוטים</div>
     <div class="nav-item" onclick="showPage('knesset')" id="nav-knesset"><span class="num">—</span>סריקת פרוטוקולי הכנסת</div>
+    <div class="nav-item" onclick="showPage('press')" id="nav-press"><span class="num">—</span>סקירת עיתונות</div>
     <div class="nav-item" onclick="showPage('crossref')" id="nav-crossref"><span class="num">—</span>הצלבה לפי שחקן</div>
     <div class="nav-item" onclick="showPage('export')" id="nav-export"><span class="num">—</span>ייצוא</div>
   </div>
@@ -655,6 +670,52 @@ a.mini{color:var(--text)}
   </div>
 </div>
 
+<!-- PRESS REVIEW PAGE -->
+<div class="page" id="page-press">
+  <div class="content">
+    <div style="font-size:15px;font-weight:600;margin-bottom:12px">סקירת עיתונות שיטתית</div>
+    <div class="exp-card">
+      <h3>1. טווח וזירה</h3>
+      <div class="word-row" style="margin-bottom:10px">
+        <select id="prEvent" onchange="prSetWindow()"></select>
+        <label class="imp-chk">מתאריך <input type="date" id="prFrom"/></label>
+        <label class="imp-chk">עד תאריך <input type="date" id="prTo"/></label>
+        <select id="prSlice"><option value="0" selected>חלון אחד</option><option value="1">פירוק לחודשים</option><option value="3">פירוק לרבעונים</option></select>
+      </div>
+      <p style="margin:0">הסריקה מוגבלת לרשימת כלי התקשורת שהוגדרה במנוע החיפוש. פירוק החלון לחודשים מעקף את תקרת מאה התוצאות לשאילתה, במחיר של יותר שאילתות.</p>
+    </div>
+    <div class="exp-card">
+      <h3>2. רשת מילות המפתח</h3>
+      <div class="ana-label">מושגים</div>
+      <textarea id="prConcepts" rows="3"></textarea>
+      <div class="ana-label" style="margin-top:8px">שחקנים ופרשנים (שורה לשורה או מופרדים בפסיק)</div>
+      <textarea id="prActors" rows="4"></textarea>
+      <div class="word-row" style="margin-top:8px">
+        <label class="imp-chk"><input type="radio" name="prMode" value="c" checked onchange="prEstimate()"/> מושגים בלבד</label>
+        <label class="imp-chk"><input type="radio" name="prMode" value="a" onchange="prEstimate()"/> שחקנים בלבד</label>
+        <label class="imp-chk"><input type="radio" name="prMode" value="ac" onchange="prEstimate()"/> צירופים: שחקן × מושג</label>
+        <label class="imp-chk">עמודי תוצאות לשאילתה <input type="number" id="prPages" value="1" min="1" max="10" style="width:60px" onchange="prEstimate()"/></label>
+      </div>
+      <p class="imp-warn" id="prEst" style="margin:8px 0 0"></p>
+    </div>
+    <div class="exp-card">
+      <h3>3. הרצה</h3>
+      <div class="imp-actions" style="margin-bottom:0"><button class="ebtn ebtn-p" onclick="prRun()">הרץ סריקה</button><button class="ebtn ebtn-s" onclick="prStop()">עצור</button><button class="mini" onclick="prExportLog()">ייצא יומן שאילתות</button></div>
+      <div id="prStatus" class="imp-note" style="margin-top:8px"></div>
+    </div>
+    <div id="prResults"></div>
+    <details class="exp-card" style="margin-top:14px"><summary style="cursor:pointer;font-weight:600">הגדרות מנוע החיפוש</summary>
+      <div class="word-row" style="margin-top:10px">
+        <label class="imp-chk">API key <input type="password" id="prKey" style="min-width:240px"/></label>
+        <label class="imp-chk">Search engine ID <input type="text" id="prCx" style="min-width:200px"/></label>
+        <button class="mini" onclick="prSaveCfg()">שמור</button><button class="mini" onclick="prTest()">בדוק חיבור</button>
+        <span class="imp-note" id="prCfgStatus"></span>
+      </div>
+      <p class="imp-note" style="margin:8px 0 0">המפתח נשמר בדפדפן שלך בלבד ואינו נשלח לשום מקום מלבד גוגל. מכסת החינם היא מאה שאילתות ביום.</p>
+    </details>
+  </div>
+</div>
+
 <!-- CROSS-REFERENCE PAGE -->
 <div class="page" id="page-crossref">
   <div class="content">
@@ -788,7 +849,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.4';
+const APP_VERSION='v9.6';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -1675,8 +1736,9 @@ function switchInner(tab){
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  ['events','allsources','erosion','import','query','knesset','crossref','export'].forEach(t=>document.getElementById('nav-'+t).classList.toggle('active',t===name));
+  ['events','allsources','erosion','import','query','knesset','press','crossref','export'].forEach(t=>document.getElementById('nav-'+t).classList.toggle('active',t===name));
   if(name==='knesset')buildKnessetPage();
+  if(name==='press')buildPressPage();
   if(name==='crossref')buildCrossRefPage();
   if(name==='import')buildImportPage();
   if(name==='query')buildQueryPage();
@@ -2433,6 +2495,154 @@ function renderCrossRef(){
 }
 function fmtUS(d){const [y,m,dd]=d.split('-');return `${+m}/${+dd}/${y}`}
 
+
+// ══════════ SYSTEMATIC PRESS REVIEW (Google Programmable Search, site-restricted) ══════════
+const GCSE='https://www.googleapis.com/customsearch/v1';
+const PR_CX_DEFAULT='912023e96b39040ee';
+const PR_CONCEPTS=['הרתעה','שקט תמורת שקט','חמאס מורתע','הסדרה','ניהול הסכסוך','בידול','סבב לחימה','מנהרות','כיפת ברזל','שיקום עזה','מזוודות קטאר','היתרי עבודה','מעברים','ממשלת האחדות','הרשות הפלסטינית','אבו מאזן','תפיסת הביטחון','הקונספציה'];
+const PR_ACTORS=['בנימין נתניהו','אהוד ברק','אריאל שרון','אהוד אולמרט','יצחק רבין','שמעון פרס','משה יעלון','אביגדור ליברמן','בני גנץ','נפתלי בנט','גדי איזנקוט','אביב כוכבי','הרצי הלוי','יורם כהן','נדב ארגמן','רונן בר','תמיר הימן','אהרן חליוה','עמוס ידלין','יעקב עמידרור','גיורא איילנד','עמוס גלעד','יצחק בריק','גרשון הכהן','עמוס הראל','אבי יששכרוף','רון בן-ישי','אלכס פישמן','יוסי יהושע','יואב לימור','אמיר רפפורט','אור הלר','אלון בן-דוד','כרמלה מנשה','טל לב-רם','אמיר בוחבוט','רונן ברגמן','יוסי מלמן','אהוד יערי','צבי יחזקאלי','יוני בן מנחם','ברק רביד','איתמר אייכנר','אריאל כהנא','נחום ברנע','סימה קדמון','בן כספית','יוסי ורטר','אלוף בן','רביב דרוקר','אמנון אברמוביץ','דן מרגלית','קלמן ליבסקינד','עמית סגל','מתי טוכפלד','בועז ביסמוט','דרור אידר','נדב שרגאי','חגי סגל','קרוליין גליק','יעקב ברדוגו','אראל סגל','אבישי בן חיים','קובי מיכאל','מיכאל מילשטיין','יוחנן צורף','ערן לרמן','אפרים ענבר','מרדכי קידר','יוסי קופרוסר'];
+let prHits=[],prLog=[],prAbort=false,prRunning=false;
+function prCfg(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
+function prSaveCfg(){
+  try{localStorage.setItem('thesis_gcse_key',document.getElementById('prKey').value.trim());
+      localStorage.setItem('thesis_gcse_cx',document.getElementById('prCx').value.trim())}catch(e){}
+  document.getElementById('prCfgStatus').textContent='נשמר';
+}
+function buildPressPage(){
+  const s=document.getElementById('prEvent');
+  if(s&&!s.options.length){s.innerHTML=STRESS.map(e=>`<option value="${e.n}">${evTitle(e)}</option>`).join('');s.value=String(EVENTS[cur].bg?9:EVENTS[cur].n);prSetWindow()}
+  const c=document.getElementById('prConcepts');if(c&&!c.value)c.value=PR_CONCEPTS.join(', ');
+  const a=document.getElementById('prActors');if(a&&!a.value)a.value=PR_ACTORS.join(', ');
+  const k=document.getElementById('prKey');if(k&&!k.value)k.value=prCfg('thesis_gcse_key','');
+  const x=document.getElementById('prCx');if(x&&!x.value)x.value=prCfg('thesis_gcse_cx',PR_CX_DEFAULT);
+  prEstimate();
+}
+function prSetWindow(){const w=eventWindow(Number(document.getElementById('prEvent').value));if(w){document.getElementById('prFrom').value=w[0];document.getElementById('prTo').value=w[1]}prEstimate()}
+function prTerms(id){return (document.getElementById(id).value||'').split(/[,\n]/).map(x=>x.trim()).filter(Boolean)}
+function prMode(){const r=document.querySelector('input[name="prMode"]:checked');return r?r.value:'c'}
+function prWindows(){
+  const from=document.getElementById('prFrom').value,to=document.getElementById('prTo').value;
+  const months=Number(document.getElementById('prSlice').value||0);
+  if(!from||!to||from>to)return [];
+  if(!months)return [[from,to]];
+  const out=[];let a=from;
+  while(a<=to){
+    const d=new Date(a+'T00:00:00Z');d.setUTCMonth(d.getUTCMonth()+months);d.setUTCDate(d.getUTCDate()-1);
+    let b=d.toISOString().slice(0,10);if(b>to)b=to;
+    out.push([a,b]);
+    const n=new Date(b+'T00:00:00Z');n.setUTCDate(n.getUTCDate()+1);a=n.toISOString().slice(0,10);
+  }
+  return out;
+}
+function prQueries(){
+  const con=prTerms('prConcepts'),act=prTerms('prActors'),m=prMode();
+  let base=[];
+  if(m==='c')base=con;
+  else if(m==='a')base=act.map(a=>`"${a}"`);
+  else act.forEach(a=>con.forEach(c=>base.push(`"${a}" ${c}`)));
+  const out=[];
+  prWindows().forEach(w=>base.forEach(q=>out.push({q,from:w[0],to:w[1]})));
+  return out;
+}
+function prEstimate(){
+  const el=document.getElementById('prEst');if(!el)return;
+  const n=prQueries().length,pages=Math.max(1,Number(document.getElementById('prPages').value||1));
+  const calls=n*pages;
+  el.textContent=`${n} שאילתות × ${pages} עמודים = ${calls} קריאות ל-API.`+(calls>100?` זה חורג ממכסת החינם היומית (100). צמצם את הטווח, את מספר המושגים או את הפירוק, או שתחויב כחמישה דולר לאלף קריאות.`:` מכסת החינם היומית היא 100.`);
+  el.style.display=calls?'':'none';
+  el.style.color=calls>100?'#9b2c2c':'';
+}
+const prDate=d=>d.replace(/-/g,'');
+async function prFetch(q,from,to,start){
+  const key=prCfg('thesis_gcse_key',''),cx=prCfg('thesis_gcse_cx',PR_CX_DEFAULT);
+  if(!key)throw new Error('לא הוגדר API key בהגדרות מנוע החיפוש');
+  const u=`${GCSE}?key=${encodeURIComponent(key)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(q)}&num=10&start=${start}&sort=${encodeURIComponent('date:r:'+prDate(from)+':'+prDate(to))}`;
+  const r=await fetch(u);
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const m=(j.error&&j.error.message)||('שגיאה '+r.status);throw new Error(m)}
+  return j;
+}
+async function prTest(){
+  prSaveCfg();
+  const el=document.getElementById('prCfgStatus');el.textContent='בודק...';
+  try{const j=await prFetch('חמאס','2014-07-01','2014-08-31',1);
+    el.textContent=`✓ החיבור תקין — ${(j.searchInformation&&j.searchInformation.totalResults)||0} תוצאות לשאילתת בדיקה`}
+  catch(e){el.textContent='✗ '+e.message}
+}
+function prStop(){prAbort=true}
+function prStatus(t,busy){const el=document.getElementById('prStatus');el.textContent=t;el.classList.toggle('busy',!!busy)}
+function prItemDate(it){
+  const pm=it.pagemap||{},mt=(pm.metatags||[])[0]||{};
+  const c=mt['article:published_time']||mt['datepublished']||mt['date']||(pm.newsarticle&&pm.newsarticle[0]&&pm.newsarticle[0].datepublished)||'';
+  const m=String(c).match(/\d{4}-\d{2}-\d{2}/);
+  if(m)return m[0];
+  return '';
+}
+async function prRun(){
+  if(prRunning)return;
+  prSaveCfg();
+  const qs=prQueries();
+  if(!qs.length){alert('אין שאילתות — בדוק את הטווח ואת מילות המפתח');return}
+  const pages=Math.max(1,Number(document.getElementById('prPages').value||1));
+  if(!confirm(`זה יבצע ${qs.length*pages} קריאות ל-API. להמשיך?`))return;
+  prRunning=true;prAbort=false;prHits=[];prLog=[];
+  const seen=new Set();
+  let done=0,failed=0;const errs=[];
+  for(const {q,from,to} of qs){
+    if(prAbort)break;
+    let n=0;
+    for(let pg=0;pg<pages&&!prAbort;pg++){
+      try{
+        const j=await prFetch(q,from,to,pg*10+1);
+        const items=j.items||[];n+=items.length;
+        items.forEach(it=>{
+          const k=normUrl(it.link);if(seen.has(k))return;seen.add(k);
+          prHits.push({title:it.title||'',link:it.link,snippet:it.snippet||'',site:it.displayLink||'',date:prItemDate(it),q,from,to});
+        });
+        if(items.length<10)break;
+      }catch(e){failed++;errs.push(`${q} (${from}): ${e.message}`);break}
+      await kSleep(250);
+    }
+    prLog.push({q,from,to,n});
+    done++;prStatus(`מריץ שאילתות: ${done} מתוך ${qs.length} · ${prHits.length} תוצאות ייחודיות`,true);
+  }
+  prRunning=false;
+  prStatus(`${prAbort?'הופסק · ':''}הושלמו ${done} שאילתות · ${prHits.length} תוצאות ייחודיות${failed?` · ${failed} שאילתות נכשלו`:''}`);
+  if(errs.length)console.warn(errs.join('\n'));
+  renderPrResults(errs);
+}
+function prDel(i){prHits.splice(i,1);renderPrResults()}
+function prAdd(i){
+  const h=prHits[i],evn=Number(document.getElementById('prEvent').value),e=evByN(evn);
+  const srcs=getSources(evn);
+  if(srcs.some(x=>x.url&&normUrl(x.url)===normUrl(h.link))){alert('המקור כבר קיים בנקודת השבר הזו');return}
+  const pub=h.date||'';
+  srcs.push(normSource({id:genId(e.code,'NEWS',evn),t:'NEWS',phase:pub?phaseFor(evn,pub):'',proof:'none',analysisField:'',
+    txt:`${h.title} — ${h.site}`,url:h.link,citedUrl:'',pubDate:pub,konzept:[],ana:{},quotes:[],ts:Date.now()}));
+  setSources(evn,srcs);buildNav();
+  prHits.splice(i,1);renderPrResults();
+  document.getElementById('prResults').insertAdjacentHTML('afterbegin',`<div class="imp-ok">נוסף כמקור ל${esc(e.name)}. פתח אותו והדבק את הציטוט המדויק מתוך הכתבה. <button class="mini" onclick="showPage('events');switchEvent(${EVENTS.findIndex(x=>x.n===evn)});switchInner('sources')">פתח את המקורות</button></div>`);
+}
+function renderPrResults(errs){
+  const el=document.getElementById('prResults');if(!el)return;
+  if(!prHits.length){el.innerHTML=prLog.length?'<div class="empty-src">לא נמצאו תוצאות. נסה להרחיב את הטווח או את מילות המפתח.</div>':'';return}
+  const by=new Map();prHits.forEach((h,i)=>{if(!by.has(h.site))by.set(h.site,[]);by.get(h.site).push(i)});
+  el.innerHTML=`<div class="imp-sum">${prHits.length} תוצאות מ-${by.size} כלי תקשורת. התוצאה היא כותרת וקטע תצוגה בלבד — פתח את הכתבה וקרא בה לפני שאתה מוסיף אותה כמקור, ואל תעתיק ציטוט מתוך קטע התצוגה, הוא קטוע.</div>`
+  +[...by.entries()].map(([site,idx])=>`<div class="imp-art"><div class="imp-art-h"><span class="imp-art-name">${esc(site)}</span><span class="phase-b">${idx.length}</span></div>
+    ${idx.map(i=>{const h=prHits[i];return `<div class="kn-ex"><div class="kn-ex-h"><strong>${esc(h.title)}</strong>${h.date?`<span class="phase-b">${h.date.split('-').reverse().join('/')}</span>`:'<span class="imp-note">ללא תאריך</span>'}<span class="imp-note">שאילתה: ${esc(h.q)}</span>
+      <span style="margin-inline-start:auto;display:flex;gap:6px"><a class="mini" href="${esc(h.link)}" target="_blank" rel="noopener">פתח ↗</a><button class="mini" onclick="prAdd(${i})">הוסף כמקור</button><button class="mini" onclick="prDel(${i})">מחק</button></span></div>
+      <div class="kn-ex-text">${esc(h.snippet)}</div></div>`}).join('')}
+    </div>`).join('')
+  +(errs&&errs.length?`<details class="kn-errs"><summary>${errs.length} שאילתות נכשלו</summary>${errs.map(x=>`<div>${esc(x)}</div>`).join('')}</details>`:'');
+}
+function prExportLog(){
+  if(!prLog.length){alert('אין יומן — הרץ סריקה קודם');return}
+  const rows=[['שאילתה','מתאריך','עד תאריך','מספר תוצאות']].concat(prLog.map(l=>[l.q,l.from,l.to,l.n]));
+  const csv='﻿'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='press-query-log.csv';a.click();
+}
+
 // ── KNESSET PROTOCOL SCAN (official Knesset OData V4 through a small proxy worker) ──
 const ODATA='https://knesset.gov.il/OdataV4/ParliamentInfo';
 const KPROXY_DEFAULT='https://knesset-proxy.yuvalbloomberg.workers.dev';
@@ -2443,7 +2653,7 @@ const KGROUPS=[
   {k:'finance',l:'ועדת הכספים',re:/^ועדת הכספים$/},
   {k:'all',l:'כל הוועדות',re:/./}
 ];
-let knList=[],knCands=[],knAbort=false,knRunning=false,knEvn=0,knErrs=[];
+let knList=[],knCands=[],knAbort=false,knRunning=false,knEvn=0,knErrs=[],knTopicFilter='';
 function knSelExUpd(){const el=document.getElementById("knSelEx");if(el)el.textContent=knCands.reduce((s,c)=>s+c.excerpts.filter(x=>x.sel).length,0)}
 function knDelEx(ci,xi){knCands[ci].excerpts.splice(xi,1);renderKnResults(knEvn,knErrs)}
 function knDelFile(file){if(!confirm('להסיר את כל המובאות מהפרוטוקול הזה מהרשימה?'))return;knCands.forEach(c=>{if(c.p.file===file)c.excerpts=[]});renderKnResults(knEvn,knErrs)}
@@ -2503,7 +2713,40 @@ async function odataIn(entity,field,ids,extra,select,label){
   }
   return out;
 }
+// ── methodological reminder, rendered from the same constants the tagging uses ──
+const HYPO=[
+ {k:'H1',t:'מיקרו — מחויבות לפרדיגמה והטיית אישוש',d:'שחקני מפתח המושקעים ומזוהים פומבית במדיניות מסננים או מפרשים מחדש אותות אזהרה; מידע תואם מקבל משקל יתר, ומידע סותר מסומן כ"רעש".',f:'שחקן מושקע שהוביל בעצמו שינוי תפיסה מיד עם האותות הראשונים.'},
+ {k:'H2',t:'מזו — הומוגניות וסגירות קהילת ההערכה (חשיבת יחד)',d:'פורום אחיד ברקעו, תיוג מבקרים, דחיית אזהרות של דרגי שטח או מומחים חיצוניים, היעדר חלופות בפרוטוקול.',f:'קהילה הומוגנית שעודדה באופן שיטתי הערכות חלופיות ואימצה עמדות מבחוץ.'},
+ {k:'H3',t:'מאקרו — חסינות מנטילת סיכונים ונוחות מערכתית',d:'העדפת פתרון הגנתי-טכנולוגי שחוסך חיכוך, גיוס ומחיר פוליטי; "עלות שינוי הכיוון" ו"הנאה הדדית" של הדרג המדיני והצבאי מהשקט.',f:'המערכת דחתה במודע פתרון טכנולוגי זמין ובחרה בחיכוך גבוה וביוזמה התקפית.'},
+];
+function knRefHtml(){
+  const row=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`;
+  return `<details class="kn-ref" id="knRef"><summary>תזכורת מתודולוגית — המשתנים, עמודי התווך ומבחני הראיה</summary>
+  <p style="margin:2px 0 10px">שאלת המחקר: מדוע נשמרה הקונספציה הישראלית כלפי הפלסטינים וחמאס בין 1993 ל-2023 חרף אנומליות חוזרות, והאם התרחשה למידה אסטרטגית. השיטה: מעקב תהליכים על פני 12 נקודות שבר.</p>
+  <h4>המשתנים הבלתי תלויים — שלוש ההשערות</h4>
+  <table>${HYPO.map(h=>row(h.k,`<b>${h.t}</b><br>${h.d}<br><span style="color:var(--muted)">תנאי הפרכה: ${h.f}</span>`)).join('')}</table>
+  <h4>המשתנה התלוי — שלושת מדדי הלמידה</h4>
+  <table>${IND.map(k=>row(k.l,`Single-loop: ${IND_DESC[k.k].tac}<br>Double-loop: ${IND_DESC[k.k].str}`)).join('')}</table>
+  <h4>ארבעת עמודי התווך של הפרדיגמה</h4>
+  <table>${KONZEPT.map(k=>row(k.id+' — '+k.label,k.desc)).join('')}</table>
+  <h4>שדות הניתוח</h4>
+  <table>${QFIELDS.map(f=>row(FIELD_LABELS[f],FIELD_FULL[f])).join('')}</table>
+  <h4>חוזק הראיה ושאר התיוגים</h4>
+  <table>
+  ${row('Hoop','ראיה הכרחית: תנאי שההשערה חייבת לעמוד בו, למשל שמידע סותר אכן הגיע לדרג הבכיר. כישלון בו מפיל את ההשערה.')}
+  ${row('Smoking Gun','ראיה מספיקה: אמירה או מסמך שדי בהם לביסוס המנגנון, למשל אזהרה שנדחתה בנימוק "חמאס מורתע".')}
+  ${row('מאשש / מפריך','האם הציטוט מאשש את ההשערה שסומנה, או עונה על תנאי ההפרכה שלה.')}
+  ${row('למידה מוצהרת','הצהרה או דוח שמזהים שינוי בתפיסת היריב או ביעדים.')}
+  ${row('למידה מיושמת','מה נעשה בפועל. הפער בין השתיים הוא ה-Decoupling, והוא העדות למלכודת.')}
+  ${row('חומר רקע','הקשר שנדרש כדי לקשור בין האירועים, גם כשאינו ראיה למשתנה.')}
+  ${row('הסברים חלופיים','דחיית עימות מחושבת ורציונלית, או חוסר אובייקטיבי במידע מודיעיני. בלי ראיות להם הם נשארים ריקים, וזו הנקודה שהמנחה יבדוק.')}
+  </table></details>`;
+}
 function buildKnessetPage(){
+  if(!document.getElementById('knRef')){
+    const c=document.querySelector('#page-knesset .content');
+    if(c)c.insertAdjacentHTML('afterbegin',knRefHtml());
+  }
   const s=document.getElementById('knEvent');
   if(s&&!s.options.length){s.innerHTML=STRESS.map(e=>`<option value="${e.n}">${evTitle(e)}</option>`).join('');s.value=String(EVENTS[cur].bg?9:EVENTS[cur].n);knSetWindow()}
   const g=document.getElementById('knGroups');
@@ -2550,20 +2793,24 @@ async function knFind(){
       const keep=ses.filter(s=>all||groups.some(g=>g.re.test(cname[s.CommitteeID]||'')));
       knStatus(`${keep.length} ישיבות בוועדות שנבחרו; מאתר קובצי פרוטוקול...`,true);
       const docs=await odataIn('KNS_DocumentCommitteeSession','CommitteeSessionID',keep.map(s=>s.Id),'GroupTypeID eq 23','CommitteeSessionID,ApplicationDesc,FilePath','מאתר קובצי פרוטוקול של ועדות');
+      const cits=await odataIn('KNS_CmtSessionItem','CommitteeSessionID',keep.map(s=>s.Id),null,'CommitteeSessionID,Name','מאתר את נושאי הישיבות');
+      const ctop={};cits.forEach(x=>{if(x.Name)(ctop[x.CommitteeSessionID]=ctop[x.CommitteeSessionID]||[]).push(x.Name)});
       keep.forEach(s=>{
         const d=pickDoc(docs.filter(x=>x.CommitteeSessionID===s.Id));
-        list.push({kind:'committee',sid:s.Id,date:dPart(s.StartDate),name:cname[s.CommitteeID]||'ועדה',secret:s.TypeDesc==='חסויה',file:d&&d.FilePath,ext:d&&d.ApplicationDesc,sessionUrl:s.SessionUrl||''});
+        list.push({kind:'committee',sid:s.Id,date:dPart(s.StartDate),name:cname[s.CommitteeID]||'ועדה',secret:s.TypeDesc==='חסויה',file:d&&d.FilePath,ext:d&&d.ApplicationDesc,sessionUrl:s.SessionUrl||'',topics:[...new Set(ctop[s.Id]||[])]});
       });
     }
     if(plenum){
       knStatus('מחפש ישיבות מליאה...',true);
       const ps=await odataAll('KNS_PlenumSession',df,'Id,StartDate,Name');
       const docs=await odataIn('KNS_DocumentPlenumSession','PlenumSessionID',ps.map(s=>s.Id),null,'PlenumSessionID,GroupTypeDesc,ApplicationDesc,FilePath','מאתר קובצי דברי הכנסת');
+      const pits=await odataIn('KNS_PlmSessionItem','PlenumSessionID',ps.map(s=>s.Id),null,'PlenumSessionID,Name','מאתר את נושאי ישיבות המליאה');
+      const ptop={};pits.forEach(x=>{if(x.Name)(ptop[x.PlenumSessionID]=ptop[x.PlenumSessionID]||[]).push(x.Name)});
       ps.forEach(s=>{
         const mine=docs.filter(x=>x.PlenumSessionID===s.Id);
         const pref=mine.filter(x=>/דברי הכנסת/.test(x.GroupTypeDesc||''));
         const d=pickDoc(pref.length?pref:mine);
-        list.push({kind:'plenum',sid:s.Id,date:dPart(s.StartDate),name:'מליאת הכנסת',secret:false,file:d&&d.FilePath,ext:d&&d.ApplicationDesc,sessionUrl:''});
+        list.push({kind:'plenum',sid:s.Id,date:dPart(s.StartDate),name:'מליאת הכנסת',secret:false,file:d&&d.FilePath,ext:d&&d.ApplicationDesc,sessionUrl:'',topics:[...new Set(ptop[s.Id]||[])]});
       });
     }
   }catch(e){knStatus('החיפוש נכשל: '+e.message);knRunning=false;return}
@@ -2578,19 +2825,32 @@ function pickDoc(docs){
   const rank={DOCX:0,DOC:1,PDF:2};
   return docs.filter(d=>rank[d.ApplicationDesc]!=null).sort((a,b)=>rank[a.ApplicationDesc]-rank[b.ApplicationDesc])[0]||null;
 }
+function knTopicHit(x,q){
+  const hay=normHe((x.name||'')+' '+((x.topics||[]).join(' ')));
+  return q.split(',').map(t=>normHe(t)).filter(Boolean).some(t=>hay.indexOf(t)>=0);
+}
+function knApplyTopic(){knTopicFilter=document.getElementById('knTopicQ').value.trim();renderKnList()}
+function knClearTopic(){knTopicFilter='';renderKnList()}
 function renderKnList(){
   const el=document.getElementById('knList');
   if(!knList.length){el.innerHTML='';return}
-  const lim=knList.length>40;
+  const q=knTopicFilter;
+  const vis=knList.map((x,i)=>[x,i]).filter(([x])=>!q||knTopicHit(x,q));
   const nDone=knList.filter(x=>knDone.has(x.file)).length;
+  const lim=vis.length>40;
   let auto=0;const isAuto=x=>{if(knDone.has(x.file)||auto>=40)return false;auto++;return true};
   const evNum=Number(document.getElementById('knEvent').value);
+  const ph=d=>{const f=phaseFor(evNum,d);return f==='before'?'לפני':f==='after'?'אחרי':'תוך כדי'};
   el.innerHTML=`<div class="exp-card"><h3>פרוטוקולים לסריקה</h3>
-    <div class="word-row" style="margin-bottom:8px"><button class="mini" onclick="knSelAll(true)">בחר הכל</button><button class="mini" onclick="knSelAll(false)">נקה בחירה</button><button class="mini" onclick="knSelNext(40)">בחר 40 הבאים שלא נסרקו</button>
+    <div class="word-row" style="margin-bottom:8px"><span class="imp-note">סינון לפי נושא הישיבה (כמה נושאים מופרדים בפסיק):</span>
+      <input type="text" id="knTopicQ" value="${esc(q)}" placeholder="עזה, חמאס, מצב ביטחוני" style="min-width:240px" onkeydown="if(event.key==='Enter')knApplyTopic()"/>
+      <button class="mini" onclick="knApplyTopic()">סנן</button><button class="mini" onclick="knClearTopic()">נקה סינון</button></div>
+    <div class="word-row" style="margin-bottom:8px"><button class="mini" onclick="knSelAll(true)">בחר את המוצגים</button><button class="mini" onclick="knSelAll(false)">נקה בחירה</button><button class="mini" onclick="knSelNext(40)">בחר 40 הבאים שלא נסרקו</button>
       <span class="imp-note">טווח: <input type="number" id="knRngA" min="1" max="${knList.length}" value="1" style="width:64px"/> – <input type="number" id="knRngB" min="1" max="${knList.length}" value="${Math.min(40,knList.length)}" style="width:64px"/></span><button class="mini" onclick="knSelRange()">בחר טווח</button>
       <span class="imp-note" id="knSelCount"></span></div>
-    <div class="kn-list">${knList.map((x,i)=>`<label class="kn-item"><input type="checkbox" data-i="${i}" ${!lim||isAuto(x)?'checked':''} onchange="knCount()"/><span class="imp-note" style="min-width:2.5em">${i+1}.</span><span class="phase-b">${x.date.split('-').reverse().join('/')}</span><span>${esc(x.name)}</span><span class="phase-b">${phaseFor(evNum,x.date)==='before'?'לפני':phaseFor(evNum,x.date)==='after'?'אחרי':'תוך כדי'}</span><span class="imp-note">${x.ext}</span>${knDone.has(x.file)?'<span class="phase-b">נסרק</span>':''}</label>`).join('')}</div>
-    ${lim?`<p class="imp-warn">סך הכול ${knList.length} פרוטוקולים${nDone?` · ${nDone} כבר נסרקו`:''}. נבחרו אוטומטית 40 שטרם נסרקו. כל פרוטוקול נוסף מאריך את הסריקה ומייקר את שלב הבינה המלאכותית.</p>`:''}
+    <div class="imp-note" style="margin-bottom:6px">מוצגים ${vis.length} מתוך ${knList.length} פרוטוקולים${nDone?` · ${nDone} כבר נסרקו`:''}</div>
+    <div class="kn-list">${vis.map(([x,i])=>`<label class="kn-item"><input type="checkbox" data-i="${i}" ${!lim||isAuto(x)?'checked':''} onchange="knCount()"/><span class="imp-note" style="min-width:2.5em">${i+1}.</span><span class="phase-b">${x.date.split('-').reverse().join('/')}</span><span>${esc(x.name)}</span><span class="phase-b">${ph(x.date)}</span><span class="imp-note">${x.ext}</span>${knDone.has(x.file)?'<span class="phase-b">נסרק</span>':''}</label>${(x.topics&&x.topics.length)?`<div class="kn-topics">${esc(x.topics.slice(0,6).join('  ·  '))}${x.topics.length>6?`  ·  ועוד ${x.topics.length-6}`:''}</div>`:''}`).join('')}</div>
+    ${lim?`<p class="imp-warn">נבחרו אוטומטית 40 שטרם נסרקו. כל פרוטוקול נוסף מאריך את הסריקה ומייקר את שלב הבינה המלאכותית.</p>`:''}
     <div class="imp-actions" style="margin-bottom:0"><button class="ebtn ebtn-p" onclick="knScan()">סרוק את הפרוטוקולים שנבחרו</button><button class="ebtn ebtn-s" onclick="knStop()">עצור</button></div></div>`;
   knCount();
 }
@@ -2741,30 +3001,97 @@ function renderKnResults(evn,errs){
   +[...groups.entries()].map(([file,cis])=>{
     const p=knCands[cis[0]].p;const ph=phaseFor(evn,p.date);
     return `<div class="imp-art"><div class="imp-art-h"><span class="imp-art-name">${esc(p.name)} — ${p.date.split('-').reverse().join('/')}</span><span class="phase-b">${PLABEL[ph]}</span><a class="mini" href="${esc(file)}" target="_blank" rel="noopener">הפרוטוקול המלא ↗</a><button class="mini" title="הסר את כל המובאות מהפרוטוקול הזה" onclick="knDelFile('${esc(file)}')">×</button></div>
-      ${cis.map(ci=>{const c=knCands[ci];return c.excerpts.map((x,xi)=>`<div class="kn-ex${x.whole?' whole':''}"><label class="kn-ex-h"><input type="checkbox" ${x.sel?'checked':''} onchange="knCands[${ci}].excerpts[${xi}].sel=this.checked;knSelExUpd()"/><strong>${esc(c.speaker)}</strong>${c.actorName?`<span class="phase-b">${esc(c.actorName)}</span>`:''}${c.hits.length?`<span class="imp-note">מילות מפתח: ${esc(c.hits.join(', '))}</span>`:''}${x.whole?'<span class="imp-note">קטע הדיבור המלא — אפשר לקצר אחרי הייבוא</span>':''}<button class="mini" style="margin-inline-start:auto" title="הסר מובאה זו" onclick="event.preventDefault();event.stopPropagation();knDelEx(${ci},${xi})">×</button></label><div class="kn-ex-text">${esc(x.text)}</div>${x.tags?`<div class="qres-why">${esc(tagLine(x.tags))}${x.tags.reason?' — '+esc(x.tags.reason):''}</div>`:''}</div>`).join('')}).join('')}
+      ${cis.map(ci=>{const c=knCands[ci];return c.excerpts.map((x,xi)=>`<div class="kn-ex${x.whole?' whole':''}"><label class="kn-ex-h"><input type="checkbox" ${x.sel?'checked':''} onchange="knCands[${ci}].excerpts[${xi}].sel=this.checked;knSelExUpd()"/><strong>${esc(c.speaker)}</strong>${c.actorName?`<span class="phase-b">${esc(c.actorName)}</span>`:''}${c.hits.length?`<span class="imp-note">מילות מפתח: ${esc(c.hits.join(', '))}</span>`:''}${x.whole?'<span class="imp-note">קטע הדיבור המלא — אפשר לקצר אחרי הייבוא</span>':''}<button class="mini" style="margin-inline-start:auto" title="הסר מובאה זו" onclick="event.preventDefault();event.stopPropagation();knDelEx(${ci},${xi})">×</button></label><div class="kn-ex-text">${esc(x.text)}</div>${x.tags&&x.tags.reason?`<div class="qres-why">${esc(x.tags.reason)}</div>`:''}${knTagBar(ci,xi,x)}</div>`).join('')}).join('')}
     </div>`}).join('')
   +(nEx?`<div class="imp-actions"><button class="ebtn ebtn-p" onclick="knImport(${evn})">ייבא את המובאות שנבחרו</button><span class="imp-note">כל פרוטוקול נכנס כמקור מסוג פרוטוקול. תיוג שהוצע נכנס כ"ממתין לאישור".</span></div>`:'')
   +(errs&&errs.length?`<details class="kn-errs"><summary>${errs.length} פרוטוקולים לא נקראו</summary>${errs.map(x=>`<div>${esc(x)}</div>`).join('')}</details>`:'');
 }
-function knImport(evn){
+function knImportItems(evn,items){
   const e=evByN(evn);let added=0,skipped=0,newSrc=0;
   const byFile=new Map();
-  knCands.forEach(c=>c.excerpts.forEach(x=>{if(x.sel){if(!byFile.has(c.p.file))byFile.set(c.p.file,[]);byFile.get(c.p.file).push({c,x})}}));
-  if(!byFile.size){alert('לא נבחרו מובאות');return}
-  byFile.forEach((items,file)=>{
-    const srcs=getSources(evn);const p=items[0].c.p;
+  items.forEach(it=>{if(!byFile.has(it.c.p.file))byFile.set(it.c.p.file,[]);byFile.get(it.c.p.file).push(it)});
+  byFile.forEach((arr,file)=>{
+    const srcs=getSources(evn);const p=arr[0].c.p;
     let s=srcs.find(x=>x.url&&normUrl(x.url)===normUrl(file));
     if(!s){s=normSource({id:genId(e.code,'DOC',evn),t:'DOC',phase:phaseFor(evn,p.date),proof:'none',analysisField:'',txt:`${p.name} — פרוטוקול ישיבה מ-${p.date.split('-').reverse().join('/')}`,url:file,citedUrl:p.sessionUrl||'',pubDate:p.date,konzept:[],ana:{},quotes:[],ts:Date.now()});srcs.push(s);newSrc++}
-    items.forEach(({c,x})=>{
+    arr.forEach(({c,x})=>{
       if(s.quotes.some(q=>normHe(q.text)===normHe(x.text))){skipped++;return}
       const q=Object.assign(emptyQuote(),{title:`ציטוט ${s.quotes.length+1} — ${c.speaker}`,text:x.text,speaker:c.speaker,eventDate:p.date,actor:c.actor});
-      if(x.tags){applyAiTags(q,x.tags);q.status='pending'}
+      if(x.tags){applyAiTags(q,x.tags);q.status=x.touched?'approved':'pending'}
       s.quotes.push(q);added++;
     });
     setSources(evn,srcs);
   });
   buildNav();
-  document.getElementById('knResults').insertAdjacentHTML('afterbegin',`<div class="imp-ok">יובאו ${added} מובאות ל${esc(e.name)} (${newSrc} פרוטוקולים חדשים כמקורות)${skipped?`; ${skipped} כפולות דולגו`:''}. <button class="mini" onclick="showPage('events');switchEvent(${EVENTS.findIndex(x=>x.n===evn)});switchInner('sources')">פתח את המקורות</button></div>`);
+  return {added,skipped,newSrc};
+}
+function knImport(evn){
+  const items=[];
+  knCands.forEach(c=>c.excerpts.forEach(x=>{if(x.sel)items.push({c,x})}));
+  if(!items.length){alert('לא נבחרו מובאות');return}
+  const r=knImportItems(evn,items);
+  knCands.forEach(c=>{c.excerpts=c.excerpts.filter(x=>!x.sel)});
+  renderKnResults(evn,knErrs);
+  document.getElementById('knResults').insertAdjacentHTML('afterbegin',`<div class="imp-ok">יובאו ${r.added} מובאות ל${esc(evByN(evn).name)} (${r.newSrc} פרוטוקולים חדשים כמקורות)${r.skipped?`; ${r.skipped} כפולות דולגו`:''}. <button class="mini" onclick="showPage('events');switchEvent(${EVENTS.findIndex(x=>x.n===evn)});switchInner('sources')">פתח את המקורות</button></div>`);
+}
+// ── triage: tag one excerpt and send it straight into the thesis, or drop it ──
+function knTags(ci,xi){
+  const x=knCands[ci].excerpts[xi];
+  if(!x.tags||typeof x.tags!=='object')x.tags={};
+  const t=x.tags;
+  if(!Array.isArray(t.fields))t.fields=[];
+  if(!Array.isArray(t.ms))t.ms=[];
+  if(!t.ind||typeof t.ind!=='object')t.ind={};
+  IND.forEach(k=>{if(!IND_VAL[t.ind[k.k]])t.ind[k.k]=''});
+  if(!PROOFS.includes(t.proof))t.proof='none';
+  if(!DIR_LABEL[t.dir])t.dir='';
+  if(!LRN_LABEL[t.lrn])t.lrn='';
+  t.bg=!!t.bg;
+  return t;
+}
+function knChipMulti(el,ci,xi,key,v){
+  const t=knTags(ci,xi),a=t[key],i=a.indexOf(v);
+  if(i<0)a.push(v);else a.splice(i,1);
+  knCands[ci].excerpts[xi].touched=true;
+  el.classList.toggle('on',a.indexOf(v)>=0);
+}
+function knChipOne(el,ci,xi,key,sub,v){
+  const t=knTags(ci,xi);
+  const cur=sub?t[key][sub]:t[key];
+  const empty=(key==='proof')?'none':'';
+  const nv=(cur===v)?empty:v;
+  if(sub)t[key][sub]=nv;else t[key]=nv;
+  knCands[ci].excerpts[xi].touched=true;
+  el.closest('.kn-grp').querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
+  if(nv===v)el.classList.add('on');
+}
+function knChipBg(el,ci,xi){
+  const t=knTags(ci,xi);t.bg=!t.bg;
+  knCands[ci].excerpts[xi].touched=true;
+  el.classList.toggle('on',t.bg);
+}
+function knTagBar(ci,xi,x){
+  const t=x.tags||{};
+  const fs=Array.isArray(t.fields)?t.fields:[],ms=Array.isArray(t.ms)?t.ms:[],ind=t.ind||{};
+  const chip=(on,label,title,fn)=>`<button type="button" class="chip${on?' on':''}"${title?` title="${esc(title)}"`:''} onclick="${fn}">${esc(label)}</button>`;
+  const g=(label,inner)=>`<span class="kn-grp">${label?`<b>${label}</b>`:''}${inner}</span>`;
+  return `<div class="kn-tag">
+    ${g('שדה',QFIELDS.map(f=>chip(fs.indexOf(f)>=0,FIELD_LABELS[f],FIELD_FULL[f],`knChipMulti(this,${ci},${xi},'fields','${f}')`)).join(''))}
+    ${g('עמוד תווך',KONZEPT.map(k=>chip(ms.indexOf(k.id)>=0,k.id,k.label+' — '+k.desc,`knChipMulti(this,${ci},${xi},'ms','${k.id}')`)).join(''))}
+    ${g('כיוון',Object.keys(DIR_LABEL).map(d=>chip(t.dir===d,DIR_LABEL[d],'',`knChipOne(this,${ci},${xi},'dir','','${d}')`)).join(''))}
+    ${g('ראיה',['hoop','gun'].map(pr=>chip(t.proof===pr,PROLABEL[pr],pr==='hoop'?'ראיה הכרחית':'ראיה מספיקה',`knChipOne(this,${ci},${xi},'proof','','${pr}')`)).join(''))}
+    ${IND.map(k=>g(k.l,Object.keys(IND_VAL).map(v=>chip(ind[k.k]===v,IND_VAL[v],(IND_DESC[k.k]||{})[v]||'',`knChipOne(this,${ci},${xi},'ind','${k.k}','${v}')`)).join(''))).join('')}
+    ${g('למידה',Object.keys(LRN_LABEL).map(l=>chip(t.lrn===l,LRN_LABEL[l],'',`knChipOne(this,${ci},${xi},'lrn','','${l}')`)).join(''))}
+    ${g('',chip(!!t.bg,'חומר רקע','הקשר שנדרש כדי לקשור בין האירועים',`knChipBg(this,${ci},${xi})`))}
+    <span style="margin-inline-start:auto;display:flex;gap:6px"><button class="mini" onclick="knAssign(${ci},${xi})">שייך לתזה</button><button class="mini" onclick="knDelEx(${ci},${xi})">מחק</button></span>
+  </div>`;
+}
+function knAssign(ci,xi){
+  const c=knCands[ci],x=c.excerpts[xi];
+  const r=knImportItems(knEvn,[{c,x}]);
+  c.excerpts.splice(xi,1);
+  renderKnResults(knEvn,knErrs);
+  document.getElementById('knResults').insertAdjacentHTML('afterbegin',`<div class="imp-ok">${r.added?'המובאה שויכה לתזה':'המובאה כבר קיימת במקור ולכן דולגה'} — ${esc(c.p.name)}, ${c.p.date.split('-').reverse().join('/')}</div>`);
 }
 
 // ── INIT ──
