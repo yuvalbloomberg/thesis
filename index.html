@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.7 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v9.8 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -351,7 +351,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.7</p>
+    <p>כלי מחקר · יובל בלומברג · v9.8</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -852,7 +852,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.7';
+const APP_VERSION='v9.8';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -2504,7 +2504,7 @@ const SERPER='https://google.serper.dev/search';
 const PR_SITES=['haaretz.co.il','themarker.com','ynet.co.il','calcalist.co.il','maariv.co.il','nrg.co.il','israelhayom.co.il','globes.co.il','inn.co.il','makorrishon.co.il','srugim.co.il','mida.org.il','now14.co.il','walla.co.il','mako.co.il','13tv.co.il','kan.org.il','timesofisrael.com','jpost.com','inss.org.il','jiss.org.il','jcpa.org.il','israeldefense.co.il','maarachot.idf.il'];
 const PR_CONCEPTS=['הרתעה','שקט תמורת שקט','חמאס מורתע','הסדרה','ניהול הסכסוך','בידול','סבב לחימה','מנהרות','כיפת ברזל','שיקום עזה','מזוודות קטאר','היתרי עבודה','מעברים','ממשלת האחדות','הרשות הפלסטינית','אבו מאזן','תפיסת הביטחון','הקונספציה'];
 const PR_ACTORS=['בנימין נתניהו','אהוד ברק','אריאל שרון','אהוד אולמרט','יצחק רבין','שמעון פרס','משה יעלון','אביגדור ליברמן','בני גנץ','נפתלי בנט','גדי איזנקוט','אביב כוכבי','הרצי הלוי','יורם כהן','נדב ארגמן','רונן בר','תמיר הימן','אהרן חליוה','עמוס ידלין','יעקב עמידרור','גיורא איילנד','עמוס גלעד','יצחק בריק','גרשון הכהן','עמוס הראל','אבי יששכרוף','רון בן-ישי','אלכס פישמן','יוסי יהושע','יואב לימור','אמיר רפפורט','אור הלר','אלון בן-דוד','כרמלה מנשה','טל לב-רם','אמיר בוחבוט','רונן ברגמן','יוסי מלמן','אהוד יערי','צבי יחזקאלי','יוני בן מנחם','ברק רביד','איתמר אייכנר','אריאל כהנא','נחום ברנע','סימה קדמון','בן כספית','יוסי ורטר','אלוף בן','רביב דרוקר','אמנון אברמוביץ','דן מרגלית','קלמן ליבסקינד','עמית סגל','מתי טוכפלד','בועז ביסמוט','דרור אידר','נדב שרגאי','חגי סגל','קרוליין גליק','יעקב ברדוגו','אראל סגל','אבישי בן חיים','קובי מיכאל','מיכאל מילשטיין','יוחנן צורף','ערן לרמן','אפרים ענבר','מרדכי קידר','יוסי קופרוסר'];
-let prHits=[],prLog=[],prAbort=false,prRunning=false;
+let prHits=[],prLog=[],prAbort=false,prRunning=false,prTrash=[];
 function prCfg(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
 function prSaveCfg(){
   try{localStorage.setItem('thesis_serper_key',document.getElementById('prKey').value.trim());
@@ -2512,6 +2512,10 @@ function prSaveCfg(){
   document.getElementById('prCfgStatus').textContent='נשמר';
 }
 function buildPressPage(){
+  if(!document.getElementById('prRef')){
+    const c=document.querySelector('#page-press .content');
+    if(c)c.insertAdjacentHTML('afterbegin',knRefHtml().replace('id="knRef"','id="prRef"'));
+  }
   const s=document.getElementById('prEvent');
   if(s&&!s.options.length){s.innerHTML=STRESS.map(e=>`<option value="${e.n}">${evTitle(e)}</option>`).join('');s.value=String(EVENTS[cur].bg?9:EVENTS[cur].n);prSetWindow()}
   const c=document.getElementById('prConcepts');if(c&&!c.value)c.value=PR_CONCEPTS.join(', ');
@@ -2640,8 +2644,33 @@ async function prRun(){
   if(errs.length)console.warn(errs.join('\n'));
   renderPrResults(errs);
 }
-function prDel(i){prHits.splice(i,1);renderPrResults()}
-function prAdd(i){
+function prCardLink(el){const c=el.closest('.kn-ex');return c?decodeURIComponent(c.dataset.link||''):''}
+function prIndexOf(link){return prHits.findIndex(h=>normUrl(h.link)===normUrl(link))}
+function prDropCard(el){
+  const card=el.closest('.kn-ex');if(!card)return;
+  const grp=card.closest('.imp-art');
+  card.remove();
+  if(grp&&!grp.querySelector('.kn-ex'))grp.remove();
+  prUpdCount();
+}
+function prUpdCount(){
+  const c=document.getElementById('prCount');if(c)c.textContent=prHits.length;
+  const u=document.getElementById('prUndo');if(u)u.style.display=prTrash.length?'':'none';
+}
+function prDel(el){
+  const link=prCardLink(el),i=prIndexOf(link);
+  if(i<0)return;
+  prTrash.push(prHits[i]);prHits.splice(i,1);
+  prDropCard(el);
+}
+function prUndo(){
+  if(!prTrash.length)return;
+  prHits.push(prTrash.pop());
+  renderPrResults();
+}
+function prAdd(el){
+  const link=prCardLink(el),i=prIndexOf(link);
+  if(i<0)return;
   const h=prHits[i],evn=Number(document.getElementById('prEvent').value),e=evByN(evn);
   const srcs=getSources(evn);
   if(srcs.some(x=>x.url&&normUrl(x.url)===normUrl(h.link))){alert('המקור כבר קיים בנקודת השבר הזו');return}
@@ -2649,20 +2678,21 @@ function prAdd(i){
   srcs.push(normSource({id:genId(e.code,'NEWS',evn),t:'NEWS',phase:pub?phaseFor(evn,pub):'',proof:'none',analysisField:'',
     txt:`${h.title} — ${h.site}`,url:h.link,citedUrl:'',pubDate:pub,konzept:[],ana:{},quotes:[],ts:Date.now()}));
   setSources(evn,srcs);buildNav();
-  prHits.splice(i,1);renderPrResults();
+  prHits.splice(i,1);prDropCard(el);
   document.getElementById('prResults').insertAdjacentHTML('afterbegin',`<div class="imp-ok">נוסף כמקור ל${esc(e.name)}. פתח אותו והדבק את הציטוט המדויק מתוך הכתבה. <button class="mini" onclick="showPage('events');switchEvent(${EVENTS.findIndex(x=>x.n===evn)});switchInner('sources')">פתח את המקורות</button></div>`);
 }
 function renderPrResults(errs){
   const el=document.getElementById('prResults');if(!el)return;
   if(!prHits.length){el.innerHTML=prLog.length?'<div class="empty-src">לא נמצאו תוצאות. נסה להרחיב את הטווח או את מילות המפתח.</div>':'';return}
-  const by=new Map();prHits.forEach((h,i)=>{if(!by.has(h.site))by.set(h.site,[]);by.get(h.site).push(i)});
-  el.innerHTML=`<div class="imp-sum">${prHits.length} תוצאות מ-${by.size} כלי תקשורת. התוצאה היא כותרת וקטע תצוגה בלבד — פתח את הכתבה וקרא בה לפני שאתה מוסיף אותה כמקור, ואל תעתיק ציטוט מתוך קטע התצוגה, הוא קטוע.</div>`
-  +[...by.entries()].map(([site,idx])=>`<div class="imp-art"><div class="imp-art-h"><span class="imp-art-name">${esc(site)}</span><span class="phase-b">${idx.length}</span></div>
-    ${idx.map(i=>{const h=prHits[i];return `<div class="kn-ex"><div class="kn-ex-h"><strong>${esc(h.title)}</strong>${h.date?`<span class="phase-b">${h.date.split('-').reverse().join('/')}</span>`:'<span class="imp-note">ללא תאריך</span>'}<span class="imp-note">שאילתה: ${esc(h.q)}</span>
-      <span style="margin-inline-start:auto;display:flex;gap:6px"><a class="mini" href="${esc(h.link)}" target="_blank" rel="noopener">פתח ↗</a><button class="mini" onclick="prAdd(${i})">הוסף כמקור</button><button class="mini" onclick="prDel(${i})">מחק</button></span></div>
-      <div class="kn-ex-text">${esc(h.snippet)}</div></div>`}).join('')}
+  const by=new Map();prHits.forEach(h=>{if(!by.has(h.site))by.set(h.site,[]);by.get(h.site).push(h)});
+  el.innerHTML=`<div class="imp-sum"><span id="prCount">${prHits.length}</span> תוצאות מ-${by.size} כלי תקשורת. התוצאה היא כותרת וקטע תצוגה בלבד — פתח את הכתבה וקרא בה לפני שאתה מוסיף אותה כמקור, ואל תעתיק ציטוט מתוך קטע התצוגה, הוא קטוע. <button class="mini" id="prUndo" style="display:none" onclick="prUndo()">בטל מחיקה אחרונה</button></div>`
+  +[...by.entries()].map(([site,arr])=>`<div class="imp-art"><div class="imp-art-h"><span class="imp-art-name">${esc(site)}</span><span class="phase-b">${arr.length}</span></div>
+    ${arr.map(h=>`<div class="kn-ex" data-link="${esc(encodeURIComponent(h.link))}"><div class="kn-ex-h"><strong>${esc(h.title)}</strong>${h.date?`<span class="phase-b">${h.date.split('-').reverse().join('/')}</span>`:'<span class="imp-note">ללא תאריך</span>'}<span class="imp-note">שאילתה: ${esc(h.q)}</span>
+      <span style="margin-inline-start:auto;display:flex;gap:6px"><a class="mini" href="${esc(h.link)}" target="_blank" rel="noopener">פתח ↗</a><button class="mini" onclick="prAdd(this)">הוסף כמקור</button><button class="mini" onclick="prDel(this)">מחק</button></span></div>
+      <div class="kn-ex-text">${esc(h.snippet)}</div></div>`).join('')}
     </div>`).join('')
   +(errs&&errs.length?`<details class="kn-errs"><summary>${errs.length} שאילתות נכשלו</summary>${errs.map(x=>`<div>${esc(x)}</div>`).join('')}</details>`:'');
+  prUpdCount();
 }
 function prExportLog(){
   if(!prLog.length){alert('אין יומן — הרץ סריקה קודם');return}
