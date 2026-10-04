@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v9.9 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v10.1 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -250,6 +250,10 @@ textarea:focus{border-color:var(--accent)}
 .quote-speaker:focus{border-color:var(--accent)}
 .quote-card.is-bg{border-right:3px solid #8a7a4a}
 .qchip.altc.on{background:#efeaf7;border-color:#c3b3e0;color:#4b2e83}
+.qhint{font-size:11px;color:var(--muted)}
+.qana{margin:6px 0 0}
+.qana .ana-label{margin-bottom:3px}
+.qana textarea{width:100%;font-size:12.5px}
 .qchip.dir.confirm.on{background:var(--green-bg);border-color:#9cc9ad;color:var(--green)}
 .qchip.dir.refute.on{background:var(--red-bg);border-color:#e0a9a9;color:var(--red)}
 .qchip.bgc.on{background:#f4efe1;border-color:#cdbb86;color:#5e4f22}
@@ -351,7 +355,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v9.9</p>
+    <p>כלי מחקר · יובל בלומברג · v10.1</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -852,7 +856,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v9.9';
+const APP_VERSION='v10.1';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -899,6 +903,10 @@ const PROLABEL={none:'רגילה',hoop:'Hoop',gun:'Smoking Gun'};
 const PROCLASS={none:'pb-none',hoop:'pb-hoop',gun:'pb-gun'};
 const PROOF_RANK={none:0,hoop:1,gun:2};
 const DIR_LABEL={confirm:'מאשש',refute:'מפריך'};
+const HFIELDS=['h1','h2','h3'];
+function qDirs(q){if(!q.dirs||typeof q.dirs!=='object')q.dirs={};HFIELDS.forEach(h=>{if(!DIR_LABEL[q.dirs[h]])q.dirs[h]=''});return q.dirs}
+function qSyncDir(q){const h=HFIELDS.find(h=>q.dirs[h]);q.dir=h?q.dirs[h]:'';return q.dir}
+function qDirText(q){const p=HFIELDS.filter(h=>q.dirs&&q.dirs[h]).map(h=>FIELD_LABELS[h]+' '+DIR_LABEL[q.dirs[h]]);return p.join(', ')}
 const IND=[{k:'adv',l:'תפיסת היריב'},{k:'res',l:'הקצאת משאבים'},{k:'goal',l:'יעדים אופרטיביים'}];
 const IND_VAL={tac:'טקטית',str:'אסטרטגית'};
 const IND_DESC={
@@ -911,7 +919,10 @@ const CRED_OPTS=[{v:'primary',l:'ראשוני'},{v:'secondary',l:'משני'},{v:
 const CRED_LABEL={primary:'ראשוני',secondary:'משני',realtime:'זמן אמת',retro:'רטרוספקטיבי'};
 const SUPPORT_LABEL={support:'תומך בפרדיגמה',refute:'מפריך פרדיגמה',partial:'חלקי'};
 const ANA_TEXT=['docSummary','summary','hExplain','proofExplain','limitations'];
-const ANA_LABEL={docSummary:'סיכום המסמך',summary:'הנקודה הרלוונטית למחקר',hExplain:'מדוע ההשערות שסומנו',proofExplain:'מדוע חוזק הראיה',limitations:'מה המקור לא מוכיח / מגבלותיו'};
+// per-quote analysis text: what this specific quote shows, and what it does not
+const QANA=[{k:'qSummary',l:'הנקודה הרלוונטית למחקר — בציטוט הזה',ph:'מה בדיוק הציטוט הזה מוכיח או ממחיש ביחס לשאלת המחקר?'},
+            {k:'qLimits',l:'מה הציטוט הזה לא מוכיח',ph:'מה נשאר פתוח? מה עוד נדרש כדי לבסס את הטענה?'}];
+const ANA_LABEL={docSummary:'סיכום המסמך',summary:'הנקודה הרלוונטית למחקר — ברמת המקור כולו',hExplain:'מדוע ההשערות שסומנו',proofExplain:'מדוע חוזק הראיה',limitations:'מה המקור לא מוכיח / מגבלותיו'};
 
 // ── STORAGE (same keys as v5/v6 — existing data loads as is) ──
 const sk=(ev,f)=>`pt5_e${ev}_${f}`;
@@ -919,7 +930,7 @@ const skSrc=(ev)=>`pt5_e${ev}_srcs`;
 const skEr=(ev,m)=>`pt5_er_e${ev}_${m}`;
 
 // ── QUOTE-LEVEL TAGGING: normalize data on read (v7 data migrates to the v8 scheme) ──
-function emptyQuote(){return {title:'',text:'',page:'',speaker:'',eventDate:'',fields:[],ms:[],proof:'none',dir:'',ind:{adv:'',res:'',goal:''},lrn:'',bg:false,status:'approved',note:''}}
+function emptyQuote(){return {title:'',text:'',page:'',speaker:'',eventDate:'',qSummary:'',qLimits:'',fields:[],ms:[],proof:'none',dir:'',dirs:{h1:'',h2:'',h3:''},ind:{adv:'',res:'',goal:''},lrn:'',bg:false,status:'approved',note:''}}
 function normQuote(q,s){
   if(!q||typeof q!=='object')return emptyQuote();
   if(!Array.isArray(q.fields)){
@@ -934,12 +945,17 @@ function normQuote(q,s){
   q.ms=[...new Set(q.ms.map(m=>LEGACY_M[m]||m).filter(m=>MCOLS.includes(m)))];
   if(!PROOFS.includes(q.proof))q.proof='none';
   if(!DIR_LABEL[q.dir])q.dir='';
+  if(!q.dirs||typeof q.dirs!=='object'){
+    q.dirs={h1:'',h2:'',h3:''};
+    if(q.dir)q.fields.filter(f=>HFIELDS.includes(f)).forEach(h=>{q.dirs[h]=q.dir});
+  }
+  qDirs(q);qSyncDir(q);
   if(!q.ind||typeof q.ind!=='object')q.ind={};
   IND.forEach(x=>{if(!IND_VAL[q.ind[x.k]])q.ind[x.k]=''});
   if(!LRN_LABEL[q.lrn])q.lrn='';
   q.bg=!!q.bg;
   if(!q.status)q.status='approved';
-  ['note','title','text','page','speaker','eventDate'].forEach(k=>{if(q[k]==null)q[k]=''});
+  ['note','title','text','page','speaker','eventDate','qSummary','qLimits'].forEach(k=>{if(q[k]==null)q[k]=''});
   return q;
 }
 function normSource(s){
@@ -973,7 +989,7 @@ function setEr(evn,mi,v){localStorage.setItem(skEr(evn,MCOLS[mi]),v)}
 function hasData(evn){return !!(FIELDS.some(f=>getField(evn,f).trim())||getSources(evn).length)}
 function migrateAll(){EVENTS.forEach(e=>{const r=localStorage.getItem(skSrc(e.n));if(r)setSources(e.n,getSources(e.n))})}
 function normUrl(u){return String(u||'').trim().replace(/\/+$/,'').replace(/^https?:\/\//i,'').replace(/^www\./i,'').toLowerCase()}
-function isTagged(q){return !!(q.fields.length||q.ms.length||q.proof!=='none'||q.dir||q.lrn||q.bg||IND.some(x=>q.ind[x.k]))}
+function isTagged(q){return !!(q.fields.length||q.ms.length||q.proof!=='none'||q.dir||HFIELDS.some(h=>q.dirs&&q.dirs[h])||q.lrn||q.bg||IND.some(x=>q.ind[x.k]))}
 function evByN(n){return EVENTS.find(e=>e.n===Number(n))}
 function evTitle(e){return e.bg?e.name:`${e.n}. ${e.name} (${e.year})`}
 
@@ -1003,7 +1019,7 @@ function mCount(evn,m){let c=0;getSources(evn).forEach(s=>s.quotes.forEach(q=>{i
 function qTagText(q){
   const p=[];
   if(q.fields.length)p.push('שדות: '+q.fields.map(f=>FIELD_LABELS[f]).join(', '));
-  if(q.dir)p.push('כיוון: '+DIR_LABEL[q.dir]);
+  const dt=qDirText(q);if(dt)p.push('כיוון: '+dt);else if(q.dir)p.push('כיוון: '+DIR_LABEL[q.dir]);
   if(q.ms.length)p.push('מרכיבים: '+q.ms.map(m=>MNAMES[m]).join(', '));
   if(q.proof!=='none')p.push('ראיה: '+PROLABEL[q.proof]);
   const ind=IND.filter(x=>q.ind[x.k]).map(x=>`${x.l} — ${IND_VAL[q.ind[x.k]]}`);
@@ -1036,7 +1052,8 @@ function buildWordPayload(scope){
         const head=[`ציטוט ${i+1}`,q.page?`עמ' ${q.page}`:'',qt].filter(Boolean).join('   |   ');
         const st=q.status==='pending'?'תיוג ממתין לאישור':q.status==='inherited'?'תיוג הועתק מהמקור':'';
         const tags=[qTagText(q),st].filter(Boolean).join('   |   ');
-        return {head,tags,text:q.text};
+        const notes=QANA.map(x=>({label:x.l,text:q[x.k]||''})).filter(x=>x.text.trim());
+        return {head,tags,text:q.text,notes};
       });
       return {id:s.id,title:s.txt||'',url:s.url||'',meta,tags,fields,quotes};
     });
@@ -1105,6 +1122,10 @@ function buildWordDocument(D, payload){
           if(q.tags)out.push(P(run(q.tags,{size:18,color:MUTED}),{after:40,extra:{keepNext:true}}));
           const ls=lines(q.text);
           (ls.length?ls:['(ללא טקסט)']).forEach((l,i)=>out.push(new Paragraph({bidirectional:true,spacing:{after:i===ls.length-1?200:60,line:300},indent:{start:360},border:{right:{style:BorderStyle.SINGLE,size:12,color:'B8C7D6',space:10}},children:[run(l,{size:21})]})));
+          (q.notes||[]).forEach(n=>{
+            out.push(P(run(n.label,{bold:true,size:18,color:MUTED}),{after:20,extra:{keepNext:true}}));
+            lines(n.text).forEach(l=>out.push(P(run(l,{size:19}),{after:60})));
+          });
         });
       }
     });
@@ -1398,9 +1419,10 @@ function quoteCardHTML(s,evn,q,i){
     </div>
     <textarea class="quote-text" rows="3" placeholder="הדבק ציטוט מדויק מהמקור..." oninput="qInput(${A},'text',this.value)">${esc(q.text)}</textarea>
     <div class="qtags"><span class="qgl">שדות</span>${QFIELDS.map(f=>chip('fields',f,FIELD_LABELS[f],q.fields.includes(f),/^h\d$/.test(f)?'hx '+f:(/^alt/.test(f)?'altc':''),FIELD_FULL[f])).join('')}</div>
-    <div class="qtags"><span class="qgl">כיוון</span>${Object.keys(DIR_LABEL).map(d=>chip('dir',d,DIR_LABEL[d],q.dir===d,'dir '+d,d==='confirm'?'הציטוט מאשש את ההשערה שסומנה':'הציטוט עונה על תנאי ההפרכה של ההשערה')).join('')}<span class="qsep"></span><span class="qgl">ראיה</span>${PROOFS.map(p=>chip('proof',p,PROLABEL[p],q.proof===p,'pr '+p)).join('')}<span class="qsep"></span>${chip('bg','1','חומר רקע',q.bg,'bgc','הקשר שנדרש בתזה כדי לקשור בין האירועים')}</div>
+    <div class="qtags"><span class="qgl">כיוון</span>${(()=>{const hs=HFIELDS.filter(h=>q.fields.includes(h));if(!hs.length)return '<span class="qhint">סמן H1, H2 או H3 כדי לקבוע כיוון</span>';return hs.map(h=>`<span class="indg"><span class="indl">${FIELD_LABELS[h]}</span>${Object.keys(DIR_LABEL).map(d=>chip('dirs.'+h,d,DIR_LABEL[d],q.dirs[h]===d,'dir '+d,d==='confirm'?`הציטוט מאשש את ${FIELD_LABELS[h]}`:`הציטוט עונה על תנאי ההפרכה של ${FIELD_LABELS[h]}`)).join('')}</span>`).join('')})()}<span class="qsep"></span><span class="qgl">ראיה</span>${PROOFS.map(p=>chip('proof',p,PROLABEL[p],q.proof===p,'pr '+p)).join('')}<span class="qsep"></span>${chip('bg','1','חומר רקע',q.bg,'bgc','הקשר שנדרש בתזה כדי לקשור בין האירועים')}</div>
     <div class="qtags"><span class="qgl">מרכיבים</span>${KONZEPT.map(k=>chip('ms',k.id,k.label,q.ms.includes(k.id),'',k.desc)).join('')}</div>
     <div class="qtags"><span class="qgl">למידה</span>${IND.map(x=>`<span class="indg"><span class="indl">${x.l}</span>${['tac','str'].map(v=>chip('ind.'+x.k,v,IND_VAL[v],q.ind[x.k]===v,'ind '+v,IND_DESC[x.k][v])).join('')}</span>`).join('')}<span class="indg">${Object.keys(LRN_LABEL).map(v=>chip('lrn',v,LRN_LABEL[v],q.lrn===v,'lrn',v==='declared'?'הצהרה או דוח שמזהים שינוי ביריב':'מה שנעשה בפועל: מדיניות והקצאת משאבים')).join('')}</span></div>
+    ${QANA.map(x=>`<div class="qana"><div class="ana-label">${x.l}</div><textarea rows="2" placeholder="${esc(x.ph)}" oninput="qInput(${A},'${x.k}',this.value)">${esc(q[x.k]||'')}</textarea></div>`).join('')}
     ${status}
   </div>`;
 }
@@ -1429,9 +1451,11 @@ function toggleQTag(evn,id,qi,group,v){
     const q=s.quotes[qi];if(!q)return;
     if(group==='proof')q.proof=(q.proof===v&&v!=='none')?'none':v;
     else if(group==='dir'||group==='lrn')q[group]=q[group]===v?'':v;
+    else if(group.startsWith('dirs.')){const h=group.slice(5);qDirs(q);q.dirs[h]=q.dirs[h]===v?'':v;qSyncDir(q)}
     else if(group==='bg')q.bg=!q.bg;
     else if(group.startsWith('ind.')){const k=group.slice(4);q.ind[k]=q.ind[k]===v?'':v}
     else{const a=q[group];const i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v)}
+    if(group==='fields'&&HFIELDS.includes(v)&&!q.fields.includes(v)){qDirs(q);q.dirs[v]='';qSyncDir(q)}
     if(q.status==='inherited')q.status='approved';
   });
   rerenderQuote(evn,id,qi);
@@ -1546,6 +1570,10 @@ function applyAiTags(q,x){
   q.ms=[...new Set((x.ms||[]).filter(m=>MCOLS.includes(m)))];
   q.proof=PROOFS.includes(x.proof)?x.proof:'none';
   q.dir=DIR_LABEL[x.dir]?x.dir:'';
+  q.dirs={h1:'',h2:'',h3:''};
+  const xd=(x.dirs&&typeof x.dirs==='object')?x.dirs:null;
+  HFIELDS.forEach(h=>{const v=xd?xd[h]:(q.fields.includes(h)?q.dir:'');if(DIR_LABEL[v])q.dirs[h]=v});
+  qSyncDir(q);
   const ind=x.ind||{};q.ind={};IND.forEach(k=>{q.ind[k.k]=IND_VAL[ind[k.k]]?ind[k.k]:''});
   q.lrn=LRN_LABEL[x.lrn]?x.lrn:'';
   q.bg=!!x.bg;
@@ -1867,12 +1895,12 @@ function applyAll(data){
 function exportJSON(){saveCurrentEvent();dlBlob(new Blob([JSON.stringify(collectAll(),null,2)],{type:'application/json'}),`thesis-backup-${new Date().toISOString().slice(0,10)}.json`)}
 function exportCSV(){
   const c=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  let csv=['מזהה מקור','נקודת שבר','סוג','שלב','כותרת המקור','קישור','מספר ציטוט','עמוד','דובר','מועד','שדות','כיוון','מרכיבים','ראיה','תפיסת היריב','הקצאת משאבים','יעדים אופרטיביים','מוצהרת / מיושמת','חומר רקע','סטטוס תיוג','טקסט הציטוט'].map(c).join(',')+'\n';
+  let csv=['מזהה מקור','נקודת שבר','סוג','שלב','כותרת המקור','קישור','מספר ציטוט','עמוד','דובר','מועד','שדות','כיוון','מרכיבים','ראיה','תפיסת היריב','הקצאת משאבים','יעדים אופרטיביים','מוצהרת / מיושמת','חומר רקע','סטטוס תיוג','הנקודה הרלוונטית (ציטוט)','מה לא מוכיח (ציטוט)','טקסט הציטוט'].map(c).join(',')+'\n';
   const SL={approved:'מאושר',pending:'ממתין',inherited:'מועתק מהמקור'};
   EVENTS.forEach(e=>getSources(e.n).forEach(s=>{
     const base=[s.id,e.name,TLABEL[s.t]||s.t,PLABEL[s.phase]||'',s.txt,s.url];
     if(!s.quotes.length){csv+=base.concat(['','','','',FIELD_LABELS[s.analysisField]||'','',(s.konzept||[]).map(m=>MNAMES[m]).join(';'),s.proof!=='none'?PROLABEL[s.proof]:'','','','','','','','']).map(c).join(',')+'\n';return}
-    s.quotes.forEach((q,i)=>{csv+=base.concat([i+1,q.page,q.speaker,q.eventDate,q.fields.map(f=>FIELD_LABELS[f]).join(';'),DIR_LABEL[q.dir]||'',q.ms.map(m=>MNAMES[m]).join(';'),q.proof!=='none'?PROLABEL[q.proof]:'',...IND.map(x=>IND_VAL[q.ind[x.k]]||''),LRN_LABEL[q.lrn]||'',q.bg?'כן':'',SL[q.status]||'',q.text]).map(c).join(',')+'\n'});
+    s.quotes.forEach((q,i)=>{csv+=base.concat([i+1,q.page,q.speaker,q.eventDate,q.fields.map(f=>FIELD_LABELS[f]).join(';'),qDirText(q)||DIR_LABEL[q.dir]||'',q.ms.map(m=>MNAMES[m]).join(';'),q.proof!=='none'?PROLABEL[q.proof]:'',...IND.map(x=>IND_VAL[q.ind[x.k]]||''),LRN_LABEL[q.lrn]||'',q.bg?'כן':'',SL[q.status]||'',q.qSummary,q.qLimits,q.text]).map(c).join(',')+'\n'});
   }));
   dlBlob(new Blob(['\uFEFF'+csv],{type:'text/csv'}),`thesis-quotes-${new Date().toISOString().slice(0,10)}.csv`);
 }
