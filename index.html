@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מלכודת פרדיגמטית v10.1 — כלי מחקר</title>
+<title>מלכודת פרדיגמטית v10.2 — כלי מחקר</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
@@ -118,6 +118,14 @@ textarea:focus{border-color:var(--accent)}
 .sup-btn{font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--sans);transition:all 0.1s}
 .sup-btn.support.active{background:#edf7f2;color:#1a6b3c;border-color:#1a6b3c}
 .sup-btn.refute.active{background:#fcebeb;color:#a32d2d;border-color:#a32d2d}
+.sup-btn.partial.active{background:#fdf2e3;color:#8a5a1a;border-color:#c69a52}
+/* work stage of a source: untouched / in progress / finished */
+.src-card{border-right-width:4px;border-right-color:#d9dde1}
+.src-card.stg-wip{border-right-color:#e0a23c}
+.src-card.stg-done{border-right-color:#3f8f5f}
+.stg-btn{font-size:11px;padding:3px 9px;border-radius:11px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--sans);white-space:nowrap}
+.stg-btn.wip{background:#fdf2e3;color:#8a5a1a;border-color:#c69a52}
+.stg-btn.done{background:#eaf5ee;color:#2c6b45;border-color:#3f8f5f}
 .konzept-row{display:flex;flex-wrap:wrap;gap:5px}
 .kcheck{font-size:11px;padding:3px 10px;border-radius:3px;background:var(--surface2);color:var(--muted);cursor:pointer;border:1px solid var(--border);transition:all 0.1s;user-select:none}
 .kcheck.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -355,7 +363,7 @@ a.mini{color:var(--text)}
 <div class="sidebar">
   <div class="sb-logo">
     <h1>מלכודת פרדיגמטית</h1>
-    <p>כלי מחקר · יובל בלומברג · v10.1</p>
+    <p>כלי מחקר · יובל בלומברג · v10.2</p>
   </div>
   <div class="nav-section">
     <div class="nav-label">ניווט</div>
@@ -856,7 +864,7 @@ a.mini{color:var(--text)}
 
 <script>
 // ── CONSTANTS ──
-const APP_VERSION='v10.1';
+const APP_VERSION='v10.2';
 const EVENTS=[
   {n:1,code:'PARA',name:'כינון הפרדיגמה',year:'1993–1996'},
   {n:2,code:'CAMP',name:'קריסת קמפ-דיוויד',year:'2000'},
@@ -918,6 +926,10 @@ const LRN_LABEL={declared:'למידה מוצהרת',applied:'למידה מיוש
 const CRED_OPTS=[{v:'primary',l:'ראשוני'},{v:'secondary',l:'משני'},{v:'realtime',l:'זמן אמת'},{v:'retro',l:'רטרוספקטיבי'}];
 const CRED_LABEL={primary:'ראשוני',secondary:'משני',realtime:'זמן אמת',retro:'רטרוספקטיבי'};
 const SUPPORT_LABEL={support:'תומך בפרדיגמה',refute:'מפריך פרדיגמה',partial:'חלקי'};
+// work stage, set by hand: '' not started, 'wip' in progress, 'done' finished
+const STAGES=['','wip','done'];
+const STAGE_LABEL={'':'לא טופל',wip:'בעבודה',done:'הושלם'};
+const STAGE_NEXT={'':'wip',wip:'done',done:''};
 const ANA_TEXT=['docSummary','summary','hExplain','proofExplain','limitations'];
 // per-quote analysis text: what this specific quote shows, and what it does not
 const QANA=[{k:'qSummary',l:'הנקודה הרלוונטית למחקר — בציטוט הזה',ph:'מה בדיוק הציטוט הזה מוכיח או ממחיש ביחס לשאלת המחקר?'},
@@ -963,6 +975,7 @@ function normSource(s){
   ANA_TEXT.forEach(k=>{if(s.ana[k]==null)s.ana[k]=''});
   if(!Array.isArray(s.ana.credibility))s.ana.credibility=[];
   if(s.ana.support==null)s.ana.support='';
+  if(!STAGES.includes(s.stage))s.stage='';
   if(!Array.isArray(s.konzept))s.konzept=[];
   s.konzept=[...new Set(s.konzept.map(m=>LEGACY_M[m]||m).filter(m=>MCOLS.includes(m)))];
   if(!s.proof||!PROOFS.includes(s.proof))s.proof='none';
@@ -1269,13 +1282,14 @@ function rerenderQuote(evn,id,qi){
   const {s}=findSrc(evn,id);if(!s)return;
   const el=document.getElementById(`q-${id}-${qi}`);
   if(el&&s.quotes[qi])el.outerHTML=quoteCardHTML(s,evn,s.quotes[qi],qi);
-  const hb=document.getElementById('hdrb-'+id);if(hb)hb.innerHTML=headerBadgesHTML(s);
+  const hb=document.getElementById('hdrb-'+id);if(hb)hb.innerHTML=headerBadgesHTML(s,evn);
   const qb=document.getElementById('qbar-'+id);if(qb)qb.outerHTML=quoteBarHTML(s,evn);
   renderLinkedSources(evn);
 }
-function headerBadgesHTML(s){
+function headerBadgesHTML(s,evn){
   const a=srcAgg(s);
   return `<span class="src-id-badge">${esc(s.id)}</span>
+    ${evn?`<span class="stg-btn ${s.stage||''}" onclick="event.stopPropagation();cycleStage(${evn},'${s.id}')" title="לחיצה מחליפה בין: לא טופל, בעבודה, הושלם">${STAGE_LABEL[s.stage||'']}</span>`:`<span class="stg-btn ${s.stage||''}">${STAGE_LABEL[s.stage||'']}</span>`}
     <span class="tbadge ${TCLASS[s.t]||'tn'}">${TLABEL[s.t]||esc(s.t)}</span>
     <span class="phase-b">${PLABEL[s.phase]||''}</span>
     ${a.proof!=='none'?`<span class="pbadge ${PROCLASS[a.proof]}">${PROLABEL[a.proof]}</span>`:''}
@@ -1294,9 +1308,9 @@ function srcCardHTML(s,evn){
         ${suggHTML(evn,s,key)}
       </div>`;
   const hasQ=s.quotes.some(q=>q.text.trim());
-  return `<div class="src-card${open?' open':''}" id="src-${s.id}">
+  return `<div class="src-card${open?' open':''}${s.stage?' stg-'+s.stage:''}" id="src-${s.id}">
     <div class="src-card-header" onclick="toggleCard('${s.id}')">
-      <div class="src-card-badges" id="hdrb-${s.id}">${headerBadgesHTML(s)}</div>
+      <div class="src-card-badges" id="hdrb-${s.id}">${headerBadgesHTML(s,evn)}</div>
       <div class="src-card-title">${esc(s.txt)}${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(s.url)}</a>`:''}</div>
       <div class="src-card-actions" onclick="event.stopPropagation()">
         <button class="icon-btn" onclick="openEditModal(${evn},'${s.id}')" title="עריכת פרטי המקור">✎</button>
@@ -1348,6 +1362,7 @@ function toggleCard(id){
 // ── SOURCE-LEVEL FIELDS ──
 function anaInput(evn,id,key,val){setSaveStatus('saving');debounce(`ana-${id}-${key}`,()=>updateSrc(evn,id,s=>{s.ana[key]=val}))}
 function setSupport(evn,id,v){updateSrc(evn,id,s=>{s.ana.support=s.ana.support===v?'':v});rerenderCard(evn,id)}
+function cycleStage(evn,id){updateSrc(evn,id,s=>{s.stage=STAGE_NEXT[s.stage||'']});rerenderCard(evn,id)}
 function toggleCred(evn,id,v){updateSrc(evn,id,s=>{const a=s.ana.credibility;const i=a.indexOf(v);if(i>=0)a.splice(i,1);else a.push(v)});rerenderCard(evn,id)}
 function suggHTML(evn,s,key){
   const sg=s.ana.sugg||{};const v=sg[key];
@@ -1810,9 +1825,9 @@ function renderAllSources(){
   const el=document.getElementById('allSrcList');
   if(!filtered.length){el.innerHTML='<div class="empty-src">לא נמצאו מקורות שמתאימים לחיפוש. נסה מילה אחרת או הסר סינון.</div>';return}
   el.innerHTML=filtered.map(({s,e})=>`
-    <div class="src-card" style="margin-bottom:8px">
+    <div class="src-card${s.stage?' stg-'+s.stage:''}" style="margin-bottom:8px">
       <div class="src-card-header" style="cursor:default">
-        <div class="src-card-badges">${headerBadgesHTML(s)}<span class="phase-b">${e.name}</span></div>
+        <div class="src-card-badges">${headerBadgesHTML(s,e.n)}<span class="phase-b">${e.name}</span></div>
         <div class="src-card-title">${esc(s.txt)}${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a>`:''}</div>
         <button class="icon-btn" onclick="goToSource(${e.n},'${s.id}')" title="פתח את המקור">↗</button>
       </div>
